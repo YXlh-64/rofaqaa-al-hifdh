@@ -1,18 +1,18 @@
 # Local integration and operations
 
-Reviewed against official provider documentation on 2026-11-22. No hosting resources were provisioned or deployed. The SRS explicitly requests local work at this stage.
+Reviewed against official provider documentation on 2026-11-22. Aya has now authorized GitHub-connected web hosting and confirmed applying the initial Supabase migration. The selected target is Cloudflare Pages connected to the existing GitHub repository. Actual deployment is pending the Cloudflare account/GitHub connection; follow [deployment](deployment.md). The earlier local-only SRS sequence no longer blocks hosting.
 
 ## Configuration and environments
 
 Use `.env.local` for the supplied project URL and publishable key; `.env.example` contains the exact public values. Never expose a service-role key, database password or SMTP password through Vite. The demo has a separate browser-local store; logging out of demo must not copy records into live accounts. Use a different Supabase project for destructive integration tests; preserve production project IDs and never reset a populated database to apply an update.
 
-When using a different Supabase project for a hosted test build, update the exact `connect-src` origin in `public/_headers` to match its URL before building. The supplied CSP targets Aya's supplied project. The `_headers` file is interpreted by Cloudflare Pages, not by Vite's development server.
+When using a different Supabase project for a hosted test build, update the exact `connect-src` origins in `public/_headers` to match its URL before building. The supplied CSP targets Aya's supplied project. Cloudflare Pages applies `_headers` to the published static assets; Vite's development server does not interpret it.
 
 Run `npm ci`, `npm test`, `npm run build`, then `npm run dev` for local work. The static build is in `dist/`. Frontend route state uses URL fragments; invitation secrets also use fragments so ordinary HTTP access/referrer logs do not receive them. Do not add analytics that record fragments or session data.
 
 ## Apply the schema
 
-Open the supplied project in Supabase's SQL editor as its owner, review the migration, and run it once. It is an initial migration, not a repeated reset script. Use later additive migrations for changes. The public/publishable key cannot perform this step.
+Aya reports this step is complete on the supplied project. The [read-only live audit](live-readiness.md) confirms its metadata table is reachable. Do not re-run the initial migration there. For a separate empty project, review and run it once as owner; use later additive migrations for changes. The public/publishable key cannot install a schema.
 
 Check the created private bucket `pair-resources`; keep it private. Upload limits are PDF/PNG/JPEG, 5 MiB per file, 50 MiB per pair. Resources download through authenticated Storage requests on every attempt. No permanent public URL or signed URL is issued, so account disable and withdrawal affect the next authorization check; an already downloaded copy cannot be recalled.
 
@@ -36,9 +36,13 @@ Supervisor access is granted immediately when the authenticated account complete
 
 Keep Supabase's [auth rate limits](https://supabase.com/docs/guides/auth/rate-limits) enabled; official defaults currently include IP-based limits of 30 requests per five minutes and per-user email cooldowns. The database additionally rate-limits invitation operations. Do not log tokens or expose precise identity-existence errors to visitors. Test signup, confirmation, invite acceptance, recovery, expired/revoked links and retry behavior with controlled accounts.
 
-## Zero-cost hosting candidate and pilot budget
+## Zero-cost hosting and pilot budget
 
-The frontend is static and can later use a free `pages.dev` subdomain on Cloudflare Pages. No hosting action is part of this local handoff. A later deployment uses build command `npm run build`, output `dist`, and the two public Vite variables. [Cloudflare's official limits](https://developers.cloudflare.com/pages/platform/limits/) list 500 Free builds/month; [Pages](https://www.cloudflare.com/products/pages/) describes free static requests/bandwidth. Avoid paid Workers, paid domains and paid add-ons. Set `Referrer-Policy: no-referrer`, frame protections and a Content Security Policy allowing the app and this Supabase project when publishing.
+The selected path is the existing GitHub repository plus Cloudflare Pages Free and Supabase Free. Pages hosts the static frontend on a free `pages.dev` URL; data stays in Supabase. Use the build command `npm ci && npm run build:deploy`, output `dist`, and `SKIP_DEPENDENCY_INSTALL=1` so Cloudflare runs the deterministic install once. `.nvmrc` selects Node.js 24. `build:deploy` runs the application tests before the TypeScript/Vite production build. No Pages Functions, paid domains, paid Workers or paid add-ons are needed. On quota exhaustion stop and investigate rather than upgrading.
+
+After initial repository import, Cloudflare Pages' Git integration publishes production-branch pushes and creates previews for other branches. Keep Supabase redirects restricted to the stable production URL and only explicitly approved test origins. Do not add a wildcard for all Pages preview deployments. GitHub CI and the hosting build both run checks; publishing success must be confirmed in Cloudflare and against the actual returned URL.
+
+[Cloudflare's official limits](https://developers.cloudflare.com/pages/platform/limits/) list 500 Free builds/month, 20,000 files per site and 25 MiB per static file. This app's static build is far below those file limits. Private resource uploads stay in Supabase rather than the static website. No Cloudflare project or production URL has yet been created for this app. Choose **Connect to Git** at creation; a Direct Upload project cannot later be converted to Git integration.
 
 [Supabase Free pricing](https://supabase.com/pricing) currently lists 500 MB database, 1 GB file storage, 5 GB egress, 5 GB cached egress and 50,000 monthly active users; projects pause after a week of inactivity and there are two active free projects. This is a planning limit, not a guarantee of continued free service. Confirm the supplied project is on Free with no paid add-ons before launch. Do not enable an automatic paid upgrade.
 
