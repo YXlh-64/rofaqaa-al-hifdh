@@ -10,6 +10,7 @@ import {
   useSubmit,
 } from "../components/ui";
 import { initials } from "../components/presentation";
+import ProfileInvitations from "../components/ProfileInvitations";
 import "./extras.css";
 
 export default function SettingsPage() {
@@ -130,6 +131,7 @@ export default function SettingsPage() {
             </p>
           </section>
         </div>
+        <ProfileInvitations />
       </div>
     </div>
   );

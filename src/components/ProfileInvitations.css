@@ -1,0 +1,147 @@
+.profile-invitations {
+  grid-column: 1/-1;
+}
+.profile-invitations > .section-title {
+  align-items: flex-start;
+}
+.profile-invitations .section-title p {
+  font-size: 0.875rem;
+}
+.profile-invitations h3 {
+  font-size: 0.9375rem;
+  margin-bottom: 0.75rem;
+}
+.profile-invitation-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+.profile-invitation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  padding: 1rem;
+}
+.profile-invitation-details {
+  flex: 1;
+  min-width: 0;
+}
+.profile-invitation-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.profile-invitation-heading strong {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.profile-invitation-dates {
+  display: flex;
+  gap: 0.4rem 1.5rem;
+  flex-wrap: wrap;
+  margin: 0.6rem 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.profile-invitation-dates > div {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.profile-invitation-dates dt {
+  font-weight: 400;
+}
+.profile-invitation-dates dd {
+  margin: 0;
+}
+.profile-invitation-hint {
+  font-size: 0.875rem;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.profile-invitation .profile-invitation-hint {
+  margin-top: 0.5rem;
+}
+.profile-invitation-history {
+  margin-top: 1.25rem;
+}
+.profile-invitation-history .profile-invitation {
+  background: #fafbf7;
+}
+.profile-invitations [aria-busy] > .profile-invitation-hint {
+  margin-top: 1rem;
+}
+.profile-invitation-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.25rem;
+  text-align: center;
+  color: var(--teal);
+}
+.profile-invitation-empty p {
+  color: var(--ink);
+}
+.profile-invitation-empty span {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.profile-invitation-success {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid #cee0d2;
+  background: var(--teal-soft);
+  border-radius: 0.6rem;
+  color: #276454;
+  font-size: 0.9375rem;
+  line-height: 1.8;
+}
+.profile-invitation-success > svg {
+  margin-top: 0.25rem;
+}
+.profile-invitation-success .safe-link {
+  margin-top: 0.5rem;
+}
+.profile-invitation > .button {
+  flex-shrink: 0;
+}
+.profile-invitations > .section-title > .button {
+  min-height: 2.75rem;
+}
+@media (max-width: 600px) {
+  .profile-invitation {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .profile-invitation > .button {
+    align-self: flex-start;
+  }
+  .profile-invitation-heading {
+    align-items: flex-start;
+  }
+  .profile-invitation-dates {
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .profile-invitations > .section-title > .button {
+    padding-inline: 0.4rem;
+  }
+  .profile-invitations > .section-title {
+    gap: 0.5rem;
+  }
+  .profile-invitation-success {
+    padding: 0.85rem;
+  }
+}

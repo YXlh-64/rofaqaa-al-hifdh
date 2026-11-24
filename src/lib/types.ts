@@ -36,6 +36,21 @@ export type Invitation = {
   revoked_at?: string | null;
   created_at?: string;
 };
+/** Recipient inbox metadata only; pair/seat details remain private until acceptance. */
+export type ReceivedInvitation = {
+  id: string;
+  supervisor_name: string;
+  created_at: string;
+  expires_at: string;
+  accepted_at: string | null;
+  revoked_at: string | null;
+  state: "pending" | "accepted" | "expired" | "revoked" | "unavailable";
+};
+export type InvitationAcceptance = {
+  pair_id: string;
+  status: "pending" | "active" | "archived";
+  name: string;
+};
 export type Target = {
   id: string;
   pair_id: string;

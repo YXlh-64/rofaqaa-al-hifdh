@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase, localizedError } from "../lib/supabase";
@@ -18,11 +25,13 @@ import type {
   DailyEntry,
   DayInput,
   Invitation,
+  InvitationAcceptance,
   Meeting,
   MeetingInput,
   Pair,
   PairMember,
   Profile,
+  ReceivedInvitation,
   Resource,
   ResourceInput,
   Role,
@@ -92,6 +101,8 @@ export interface AppContextValue {
   revokeInvite: (pairId: string, slot: number) => Promise<void>;
   archivePair: (id: string) => Promise<void>;
   acceptInvite: (token: string) => Promise<void>;
+  listProfileInvitations: () => Promise<ReceivedInvitation[]>;
+  acceptProfileInvitation: (id: string) => Promise<InvitationAcceptance>;
   searchAccounts: (search?: string) => Promise<Profile[]>;
   setAccountEnabled: (
     id: string,
@@ -224,6 +235,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   >({});
   const [week, setWeek] = useState(weekStart());
   const sessionRef = useRef(0);
+  const authenticatedActorRef = useRef<string | null>(null);
   const objectUrls = useRef<string[]>([]);
   const fileUploads = useRef(
     new WeakMap<File, Map<string, ResourceUploadAttempt>>(),
@@ -397,6 +409,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setLoading(false);
         return;
       }
+      authenticatedActorRef.current = data.session?.user.id ?? null;
       setUser(data.session?.user ?? null);
       if (data.session?.user) void loadLive(data.session.user);
       else setLoading(false);
@@ -406,6 +419,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (!active) return;
         if (event === "PASSWORD_RECOVERY")
           sessionStorage.setItem("rofaqa-recovery", "true");
+        const nextActor = session?.user.id ?? null;
+        if (authenticatedActorRef.current !== nextActor) ++sessionRef.current;
+        authenticatedActorRef.current = nextActor;
         setUser(session?.user ?? null);
         if (session?.user)
           setTimeout(() => {
@@ -501,6 +517,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
   const logout = async () => {
     ++sessionRef.current;
+    authenticatedActorRef.current = null;
     sessionStorage.removeItem(DEMO_SESSION);
     setDemo(false);
     setUser(null);
@@ -1131,6 +1148,52 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await refresh();
     notify("قُبلت دعوتك.");
   };
+  // Loaded by Settings on demand. A missing inbox migration must not disrupt
+  // authentication or erase an already available pair workspace.
+  const listProfileInvitations = useCallback(async (): Promise<
+    ReceivedInvitation[]
+  > => {
+    if (!profile?.enabled)
+      throw new Error("سجّل الدخول بحساب مفعّل للاطّلاع على دعواتك.");
+    if (demo) return [];
+    return rpc<ReceivedInvitation[]>("list_my_invitations");
+  }, [profile?.id, profile?.enabled, demo]);
+  const acceptProfileInvitation = async (
+    id: string,
+  ): Promise<InvitationAcceptance> => {
+    if (!profile?.enabled)
+      throw new Error("سجّل الدخول بحساب مفعّل لقبول الدعوة.");
+    if (demo) throw new Error("قبول الدعوات متاح في الحساب الفعلي فقط.");
+    const generation = sessionRef.current;
+    const actorId = profile.id;
+    const assertCurrentSession = (expectedGeneration: number) => {
+      if (
+        sessionRef.current !== expectedGeneration ||
+        authenticatedActorRef.current !== actorId
+      )
+        throw new Error(
+          "تغيّرت جلسة الحساب. افتح دعوات الحساب الحالي وأعد المحاولة.",
+        );
+    };
+    const result = await rpc<InvitationAcceptance>(
+      "accept_profile_invitation",
+      {
+        p_invitation_id: id,
+      },
+    );
+    assertCurrentSession(generation);
+    await refresh();
+    // A successful live refresh advances the existing load generation once.
+    // Logout/account switches invalidate it before old acceptance side effects.
+    assertCurrentSession(generation + 1);
+    setPairId(result.pair_id);
+    notify(
+      result.status === "active"
+        ? "قُبلت دعوتك واكتملت الرفقة."
+        : "قُبلت دعوتك. تصبح المساحة متاحة بعد اكتمال انضمام الرفيقين.",
+    );
+    return result;
+  };
   const searchAccounts = async (search = "") => {
     if (!profile?.is_admin || !profile.enabled)
       throw new Error("هذه العملية لمسؤول النظام فقط.");
@@ -1255,6 +1318,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     revokeInvite,
     archivePair,
     acceptInvite,
+    listProfileInvitations,
+    acceptProfileInvitation,
     searchAccounts,
     setAccountEnabled,
     setAccountStatus: setAccountEnabled,

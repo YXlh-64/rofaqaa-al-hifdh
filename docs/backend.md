@@ -68,6 +68,8 @@ or owner field.
 | `rotate_invitation`, `revoke_invitation`      | Assigned supervisor manages an unfilled seat                            |
 | `inspect_invitation`                          | Minimal, safe invitation validity/status for the acceptance screen      |
 | `accept_invitation`                           | Verified-email acceptance; second valid seat activates atomically       |
+| `list_my_invitations`                         | Minimal inbox for the actor's verified email, without tokens or pair data |
+| `accept_profile_invitation`                   | Own inbox acceptance using the same membership rules as a secret link  |
 | `archive_pair`                                | Assigned supervisor closes a pair, invalidating open invites            |
 | `save_weekly_target`, `respond_shared_target` | Own target or proposal/other-member confirmation                        |
 | `save_daily_entry`                            | Independently writes own plan or own actuals, preserving the other      |
