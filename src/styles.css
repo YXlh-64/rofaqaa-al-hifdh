@@ -541,12 +541,6 @@ input:disabled {
   font-size: 0.6875rem;
   color: #8da696;
 }
-.profile-mini {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  padding: 0.7rem 0.6rem;
-}
 .avatar {
   display: inline-flex;
   align-items: center;
@@ -567,16 +561,6 @@ input:disabled {
 .sidebar .avatar {
   background: #34574d;
   color: #d3ddba;
-}
-.profile-mini strong {
-  display: block;
-  font-size: 0.8125rem;
-  font-weight: 500;
-}
-.profile-mini small {
-  display: block;
-  font-size: 0.6875rem;
-  color: #95b1a0;
 }
 .sidebar-close {
   display: none;

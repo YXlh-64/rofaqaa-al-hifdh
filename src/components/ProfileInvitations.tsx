@@ -282,7 +282,7 @@ function InvitationInbox({
 
 export default function ProfileInvitations() {
   const { profile, listProfileInvitations, acceptProfileInvitation } = useApp();
-  if (!profile?.enabled) return null;
+  if (!profile?.enabled || profile.is_supervisor) return null;
   return (
     <InvitationInbox
       key={`${profile.id}:${profile.email}`}

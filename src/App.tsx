@@ -385,19 +385,6 @@ export default function App() {
             <LogOut size={18} strokeWidth={1.5} />
             تسجيل الخروج
           </button>
-          <div className="profile-mini">
-            <span className="avatar">{initials(profile.display_name)}</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <strong>{profile.display_name}</strong>
-              <small>
-                {role === "member"
-                  ? "رفيقة في رحلة الحفظ"
-                  : role === "supervisor"
-                    ? "مشرف على رحلة الحفظ"
-                    : "مسؤول النظام"}
-              </small>
-            </div>
-          </div>
         </div>
       </aside>
       <div className="app-area">

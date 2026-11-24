@@ -316,6 +316,15 @@ describe("Arabic workspace journeys with isolated test fixtures", () => {
     expect(
       await screen.findByRole("button", { name: "العودة إلى مساحاتي" }),
     ).toBeVisible();
+    await user.click(
+      screen.getByRole("link", { name: "فتح إعدادات الملف الشخصي" }),
+    );
+    expect(
+      await screen.findByRole("heading", { name: "الإعدادات" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("region", { name: "دعواتك" }),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps a linked group's selection on reload and refuses an unrelated workspace link", async () => {
@@ -345,7 +354,7 @@ describe("Arabic workspace journeys with isolated test fixtures", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("keeps supervisor resources and meeting actions specific to the selected team", async () => {
+  it("keeps supervisor resources specific to the selected team", async () => {
     const user = userEvent.setup();
     seedSupervisorGroups();
     renderApp();
@@ -392,7 +401,12 @@ describe("Arabic workspace journeys with isolated test fixtures", () => {
       await screen.findByRole("heading", { name: "موارد رفقة النور" }),
     ).toBeVisible();
     expect(screen.queryByText("مورد خاص بالفجر")).not.toBeInTheDocument();
+  });
 
+  it("keeps supervisor meeting actions specific to the selected team and blocks member planning routes", async () => {
+    const user = userEvent.setup();
+    seedSupervisorGroups();
+    renderApp();
     await user.click(screen.getByRole("link", { name: "اللقاءات" }));
     const secondTeam = screen.getByRole("article", { name: "رفقة الفجر" });
     await user.click(
@@ -529,6 +543,8 @@ describe("Arabic workspace journeys with isolated test fixtures", () => {
     );
     const drawerLogout = drawer.getByRole("button", { name: "تسجيل الخروج" });
     expect(drawerLogout).toHaveTextContent("تسجيل الخروج");
+    expect(drawerLogout.parentElement?.lastElementChild).toBe(drawerLogout);
+    expect(drawer.queryByText("آية بن علي خوجة")).not.toBeInTheDocument();
     expect(document.body.style.overflow).toBe("hidden");
     await user.click(drawerLogout);
 

@@ -16,7 +16,12 @@ import type {
 
 const api = vi.hoisted(() => ({ list: vi.fn(), accept: vi.fn() }));
 const account = vi.hoisted(() => ({
-  profile: { id: "aya-account", email: "aya@example.test", enabled: true },
+  profile: {
+    id: "aya-account",
+    email: "aya@example.test",
+    enabled: true,
+    is_supervisor: false,
+  },
 }));
 vi.mock("../src/context/AppContext", () => ({
   useApp: () => ({
@@ -60,11 +65,22 @@ beforeEach(() => {
     id: "aya-account",
     email: "aya@example.test",
     enabled: true,
+    is_supervisor: false,
   };
 });
 afterEach(cleanup);
 
 describe("received invitations in the profile", () => {
+  it("does not render or load the received inbox for a supervisor", () => {
+    account.profile.is_supervisor = true;
+    render(<ProfileInvitations />);
+    expect(
+      screen.queryByRole("region", { name: "دعواتك" }),
+    ).not.toBeInTheDocument();
+    expect(api.list).not.toHaveBeenCalled();
+    expect(api.accept).not.toHaveBeenCalled();
+  });
+
   it("loads lazily and shows the empty state without refetching on ordinary rerenders", async () => {
     const pending = deferred<ReceivedInvitation[]>();
     api.list.mockReturnValue(pending.promise);
@@ -241,6 +257,7 @@ describe("received invitations in the profile", () => {
       id: "maryam-account",
       email: "maryam@example.test",
       enabled: true,
+      is_supervisor: false,
     };
     view.rerender(<ProfileInvitations />);
     expect(await screen.findByText("دعوة من المشرف الجديد")).toBeVisible();
@@ -268,6 +285,7 @@ describe("received invitations in the profile", () => {
       id: "maryam-account",
       email: "maryam@example.test",
       enabled: true,
+      is_supervisor: false,
     };
     view.rerender(<ProfileInvitations />);
     await screen.findByText("لا توجد دعوات لحسابك حاليًا.");

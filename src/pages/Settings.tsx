@@ -86,7 +86,11 @@ export default function SettingsPage({ onLogout }: { onLogout: () => void }) {
             </Field>
             <Field
               label="البريد الإلكتروني"
-              hint="هوية الدخول المرتبطة بدعواتك؛ لا تتغيّر من هذا النموذج."
+              hint={
+                profile.is_supervisor
+                  ? "البريد الإلكتروني المرتبط بحسابك؛ لا يتغيّر من هذا النموذج."
+                  : "هوية الدخول المرتبطة بدعواتك؛ لا تتغيّر من هذا النموذج."
+              }
             >
               <input type="email" dir="ltr" value={profile.email} readOnly />
             </Field>
@@ -118,8 +122,9 @@ export default function SettingsPage({ onLogout }: { onLogout: () => void }) {
               <div>
                 <strong>الخصوصية</strong>
                 <p>
-                  خططك وإنجازاتك ولقاءاتك ومواردك لا تظهر إلا لرفيقك والمشرف
-                  المكلّف.
+                  {profile.is_supervisor
+                    ? "يمكنك الاطّلاع على بيانات الفرق المسندة إلى إشرافك فقط. موارد كل فريق ولقاءاته خاصة به."
+                    : "خططك وإنجازاتك ولقاءاتك ومواردك لا تظهر إلا لرفيقك والمشرف المكلّف."}
                 </p>
               </div>
             </div>
