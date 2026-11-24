@@ -303,7 +303,11 @@ export default function Pairs({
                   variant="secondary"
                   onClick={() => {
                     setPairId(pair.id);
-                    navigate(pair.status === "pending" ? "pairs" : "dashboard");
+                    navigate(
+                      pair.status === "pending"
+                        ? "pairs"
+                        : `workspace=${encodeURIComponent(pair.id)}`,
+                    );
                   }}
                 >
                   <Users size={16} />

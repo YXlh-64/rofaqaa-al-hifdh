@@ -29,6 +29,7 @@ import {
 import { dateText, initials, localToday } from "./components/presentation";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import SupervisorDashboard from "./pages/SupervisorDashboard";
 import Planning from "./pages/Planning";
 import Progress from "./pages/Progress";
 import Meetings from "./pages/Meetings";
@@ -44,6 +45,14 @@ const pages = [
   { id: "meetings", title: "اللقاءات", icon: CalendarDays },
   { id: "resources", title: "الموارد", icon: FolderOpen },
 ];
+function workspaceIdFromHash() {
+  if (!location.hash.startsWith("#workspace=")) return null;
+  try {
+    return decodeURIComponent(location.hash.slice("#workspace=".length));
+  } catch {
+    return null;
+  }
+}
 function Invite({ token, onDone }: { token: string; onDone: () => void }) {
   const { profile, acceptInvite, logout } = useApp();
   const { busy, error, submit } = useSubmit();
@@ -129,10 +138,15 @@ export default function App() {
       sessionStorage.setItem("rofaqa-invite", location.hash.slice(8));
   }, []);
   useEffect(() => {
-    const handle = () => setPage(readPage());
+    const handle = () => {
+      setPage(readPage());
+      const workspaceId = workspaceIdFromHash();
+      if (workspaceId) setPairId(workspaceId);
+    };
+    handle();
     window.addEventListener("hashchange", handle);
     return () => window.removeEventListener("hashchange", handle);
-  }, []);
+  }, [setPairId, profile?.id]);
   useEffect(() => {
     if (!mobileOpen) return;
     document.body.style.overflow = "hidden";
@@ -164,10 +178,15 @@ export default function App() {
   }, [mobileOpen]);
   const navigate = (next: string) => {
     location.hash = next;
-    setPage(next);
+    setPage(next.split("=")[0]);
     setMobileOpen(false);
     window.scrollTo({ top: 0, behavior: "instant" });
     document.getElementById("main-content")?.focus();
+  };
+  const openPairWorkspace = (id: string) => {
+    if (!pairs.some((candidate) => candidate.id === id)) return;
+    setPairId(id);
+    navigate(`workspace=${encodeURIComponent(id)}`);
   };
   if (loading)
     return (
@@ -211,19 +230,28 @@ export default function App() {
     role === "admin"
       ? []
       : [
-          ...(role === "supervisor"
+          ...(profile.is_supervisor
             ? [{ id: "pairs", title: "الرفقاء", icon: Users }]
             : []),
           ...pages,
         ];
   const title =
-    [
-      ...visiblePages,
-      { id: "settings", title: "الإعدادات" },
-      { id: "admin", title: "إدارة الحسابات" },
-    ].find((p) => p.id === page)?.title ?? "مساحتي";
+    page === "workspace"
+      ? (pair?.name ?? "مساحة الرفقة")
+      : ([
+          ...visiblePages,
+          { id: "settings", title: "الإعدادات" },
+          { id: "admin", title: "إدارة الحسابات" },
+        ].find((p) => p.id === page)?.title ?? "مساحتي");
   const actualPage =
     role === "admin" && !["settings", "admin"].includes(page) ? "admin" : page;
+  const navPage = actualPage === "workspace" ? "dashboard" : actualPage;
+  const supervisorOverview =
+    actualPage === "dashboard" && profile.is_supervisor;
+  const workspaceId = workspaceIdFromHash();
+  const unavailableWorkspace =
+    actualPage === "workspace" &&
+    (!workspaceId || !pairs.some((candidate) => candidate.id === workspaceId));
   return (
     <>
       <a
@@ -264,8 +292,8 @@ export default function App() {
             <a
               key={id}
               href={`#${id}`}
-              className={`nav-item ${actualPage === id ? "active" : ""}`}
-              aria-current={actualPage === id ? "page" : undefined}
+              className={`nav-item ${navPage === id ? "active" : ""}`}
+              aria-current={navPage === id ? "page" : undefined}
               onClick={(e) => {
                 e.preventDefault();
                 navigate(id);
@@ -350,12 +378,16 @@ export default function App() {
             </div>
           </div>
           <div className="topbar-actions">
-            {pairs.length > 1 && role !== "admin" && (
+            {pairs.length > 1 && role !== "admin" && !supervisorOverview && (
               <select
                 className="pair-select"
                 aria-label="الرفقة الحالية"
                 value={pair?.id ?? ""}
-                onChange={(e) => setPairId(e.target.value)}
+                onChange={(e) => {
+                  if (actualPage === "workspace")
+                    openPairWorkspace(e.target.value);
+                  else setPairId(e.target.value);
+                }}
               >
                 {pairs.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -405,8 +437,34 @@ export default function App() {
               </Button>
             </div>
           )}
-          {actualPage === "dashboard" ? (
-            <Dashboard navigate={navigate} />
+          {supervisorOverview ? (
+            <SupervisorDashboard
+              onOpenPair={openPairWorkspace}
+              navigate={navigate}
+            />
+          ) : unavailableWorkspace ? (
+            <EmptyState
+              title="هذه الرفقة غير متاحة لحسابك"
+              description="ارجع إلى مساحتك لاختيار إحدى الرفقات المتاحة لك."
+              action={
+                <Button onClick={() => navigate("dashboard")}>
+                  العودة إلى مساحتي
+                </Button>
+              }
+            />
+          ) : actualPage === "dashboard" || actualPage === "workspace" ? (
+            <>
+              {profile.is_supervisor && (
+                <div className="view-toolbar">
+                  <Button variant="ghost" onClick={() => navigate("dashboard")}>
+                    <Users size={17} />
+                    كل مساحاتي
+                  </Button>
+                  <strong>{pair?.name}</strong>
+                </div>
+              )}
+              <Dashboard key={pair?.id} navigate={navigate} />
+            </>
           ) : actualPage === "plan" ? (
             <Planning />
           ) : actualPage === "progress" ? (
@@ -415,12 +473,17 @@ export default function App() {
             <Meetings />
           ) : actualPage === "resources" ? (
             <Resources />
-          ) : actualPage === "pairs" && role === "supervisor" ? (
+          ) : actualPage === "pairs" && profile.is_supervisor ? (
             <Pairs navigate={navigate} />
           ) : actualPage === "settings" ? (
             <SettingsPage />
           ) : actualPage === "admin" && profile.is_admin ? (
             <Admin />
+          ) : profile.is_supervisor ? (
+            <SupervisorDashboard
+              onOpenPair={openPairWorkspace}
+              navigate={navigate}
+            />
           ) : (
             <Dashboard navigate={navigate} />
           )}

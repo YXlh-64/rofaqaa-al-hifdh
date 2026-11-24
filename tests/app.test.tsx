@@ -10,6 +10,7 @@ import userEvent from "@testing-library/user-event";
 import App from "../src/App";
 import { AppProvider, useApp } from "../src/context/AppContext";
 import { supabase } from "../src/lib/supabase";
+import { DEMO_KEY, DEMO_SESSION, makeDemo } from "../src/lib/demo";
 import type {
   DailyEntry,
   Meeting,
@@ -155,6 +156,70 @@ function browserStorage(): Storage {
   };
 }
 
+function seedSupervisorGroups() {
+  const data = makeDemo();
+  const newMembers = data.profiles.slice(0, 2).map((person, index) => ({
+    ...person,
+    id: `second-member-${index}`,
+    email: `second-${index}@example.test`,
+    display_name: index === 0 ? "سارة منصور" : "حفصة أمين",
+  }));
+  const second: Pair = {
+    ...data.pairs[0],
+    id: "second-pair",
+    name: "رفقة الفجر",
+    members: newMembers,
+  };
+  data.profiles.push(...newMembers);
+  data.pairs.push(
+    second,
+    {
+      ...data.pairs[0],
+      id: "pending-pair",
+      name: "رفقة تنتظر",
+      status: "pending",
+      members: [],
+    },
+    {
+      ...data.pairs[0],
+      id: "archived-pair",
+      name: "رفقة سابقة",
+      status: "archived",
+    },
+    {
+      ...second,
+      id: "unrelated-pair",
+      name: "رفقة غير مرتبطة",
+      supervisor_id: "another-supervisor",
+    },
+  );
+  data.targets.push(
+    ...newMembers.map((person, index) => ({
+      ...data.targets[index],
+      id: `second-target-${index}`,
+      pair_id: second.id,
+      owner_id: person.id,
+      proposed_by: person.id,
+      hifdh: [{ surah: 24, from: 12, to: 17 }],
+    })),
+  );
+  data.entries.push(
+    ...newMembers.map((person, index) => ({
+      ...data.entries[index],
+      id: `second-entry-${index}`,
+      pair_id: second.id,
+      owner_id: person.id,
+      actual_hifdh: {
+        state: "partial" as const,
+        ranges: [{ surah: 24, from: 12, to: 14 }],
+      },
+    })),
+  );
+  localStorage.setItem(DEMO_KEY, JSON.stringify(data));
+  sessionStorage.setItem(DEMO_SESSION, "supervisor");
+  return data;
+}
+
 beforeAll(() => {
   // Node 26 exposes an unavailable global localStorage unless a backing file is supplied.
   // Browser storage belongs to this jsdom test; no real filesystem persistence is used.
@@ -185,6 +250,86 @@ beforeEach(() => {
 });
 
 describe("Arabic workspace journeys with isolated test fixtures", () => {
+  it("shows every supervised group on مساحتي and opens the chosen group's own workspace", async () => {
+    const user = userEvent.setup();
+    seedSupervisorGroups();
+    renderApp();
+    expect(
+      await screen.findByRole("heading", { name: "مساحاتي" }),
+    ).toBeVisible();
+    for (const name of ["رفقة النور", "رفقة الفجر", "رفقة تنتظر", "رفقة سابقة"])
+      expect(screen.getByRole("heading", { name })).toBeVisible();
+    expect(screen.queryByText("رفقة غير مرتبطة")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("combobox", { name: "الرفقة الحالية" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "فتح مساحة رفقة الفجر" }),
+    );
+    await screen.findByRole("heading", { name: /معًا، نُثبّت/ });
+    expect(snapshot().pair?.id).toBe("second-pair");
+    expect(
+      snapshot().entries.every((entry) => entry.pair_id === "second-pair"),
+    ).toBe(true);
+    expect(
+      snapshot().pair?.members.map((person) => person.display_name),
+    ).toEqual(["سارة منصور", "حفصة أمين"]);
+    expect(location.hash).toBe("#workspace=second-pair");
+
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "الرفقة الحالية" }),
+      "demo-pair",
+    );
+    expect(snapshot().pair?.id).toBe("demo-pair");
+    expect(location.hash).toBe("#workspace=demo-pair");
+    await user.click(screen.getByRole("link", { name: "مساحتي" }));
+    expect(
+      await screen.findByRole("heading", { name: "مساحاتي" }),
+    ).toBeVisible();
+    expect(screen.getByRole("heading", { name: "رفقة الفجر" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "رفقة النور" })).toBeVisible();
+
+    await user.click(screen.getByRole("link", { name: "الرفقاء" }));
+    const secondCard = screen
+      .getByRole("heading", { name: "رفقة الفجر" })
+      .closest("article")!;
+    await user.click(
+      within(secondCard).getByRole("button", { name: "فتح مساحة الرفقة" }),
+    );
+    expect(snapshot().pair?.id).toBe("second-pair");
+    expect(
+      await screen.findByRole("button", { name: "كل مساحاتي" }),
+    ).toBeVisible();
+  });
+
+  it("keeps a linked group's selection on reload and refuses an unrelated workspace link", async () => {
+    seedSupervisorGroups();
+    window.history.replaceState(null, "", "/#workspace=second-pair");
+    const first = renderApp();
+    await waitFor(() => expect(snapshot().pair?.id).toBe("second-pair"));
+    expect(
+      await screen.findByRole("heading", { name: /معًا، نُثبّت/ }),
+    ).toBeVisible();
+    first.unmount();
+    const second = renderApp();
+    await waitFor(() => expect(snapshot().pair?.id).toBe("second-pair"));
+    expect(
+      screen.queryByRole("heading", { name: "مساحاتي" }),
+    ).not.toBeInTheDocument();
+    second.unmount();
+    window.history.replaceState(null, "", "/#workspace=unrelated-pair");
+    renderApp();
+    expect(
+      await screen.findByRole("heading", {
+        name: "هذه الرفقة غير متاحة لحسابك",
+      }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("heading", { name: /معًا، نُثبّت/ }),
+    ).not.toBeInTheDocument();
+  });
+
   it("starts without exposing private workspaces or a public demo entry", async () => {
     const user = userEvent.setup();
     const app = renderApp();

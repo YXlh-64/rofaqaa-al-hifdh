@@ -27,20 +27,25 @@ vi.mock("../src/lib/supabase", () => ({
     from: vi.fn((table: string) => ({
       select: () => {
         live.reads.push(table);
-        return Object.assign(
-          Promise.resolve({ data: live.tables[table] ?? [], error: null }),
-          {
-            eq: (_field: string, id: string) => ({
-              maybeSingle: async () => ({
-                data:
-                  live.tables[table]?.find(
-                    (row) => (row as { id: string }).id === id,
-                  ) ?? null,
-                error: null,
-              }),
-            }),
+        return {
+          order() {
+            return this;
           },
-        );
+          range: async (start: number, end: number) => ({
+            data: (live.tables[table] ?? []).slice(start, end + 1),
+            count: (live.tables[table] ?? []).length,
+            error: null,
+          }),
+          eq: (_field: string, id: string) => ({
+            maybeSingle: async () => ({
+              data:
+                live.tables[table]?.find(
+                  (row) => (row as { id: string }).id === id,
+                ) ?? null,
+              error: null,
+            }),
+          }),
+        };
       },
     })),
     rpc: (name: string, args: Record<string, unknown>) => live.rpc(name, args),

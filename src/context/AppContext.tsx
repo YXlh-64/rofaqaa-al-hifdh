@@ -9,7 +9,8 @@ import {
 import type { ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase, localizedError } from "../lib/supabase";
-import { addDays, weekStart } from "../lib/dates";
+import { addDays, today, weekStart } from "../lib/dates";
+import { coveredAyahs, uniqueAyahs } from "../components/RangeEditor";
 import {
   DEMO_KEY,
   DEMO_SESSION,
@@ -35,6 +36,7 @@ import type {
   Resource,
   ResourceInput,
   Role,
+  SupervisedPairSummary,
   Target,
   TargetInput,
 } from "../lib/types";
@@ -54,6 +56,7 @@ export interface AppContextValue {
   isDemo: boolean;
   role: Role;
   pairs: Pair[];
+  supervisedPairSummaries: SupervisedPairSummary[];
   pair: Pair | null;
   currentPair: Pair | null;
   profiles: Profile[];
@@ -209,10 +212,32 @@ async function rpc<T>(
     throw localizedError({ message: String(data.error) });
   return data as T;
 }
-async function read<T>(table: string, columns = "*"): Promise<T[]> {
-  const { data, error } = await supabase.from(table).select(columns);
-  if (error) throw localizedError(error);
-  return (data ?? []) as T[];
+export async function read<T>(table: string, columns = "*"): Promise<T[]> {
+  const rows: T[] = [];
+  let offset = 0;
+  while (true) {
+    const selected = supabase.from(table).select(columns, { count: "exact" });
+    // Memberships use a composite primary key; all other readable tables have id.
+    const ordered =
+      table === "pair_members"
+        ? selected.order("pair_id").order("slot")
+        : selected.order("id");
+    const { data, error, count } = await ordered.range(offset, offset + 499);
+    if (error) throw localizedError(error);
+    const page = (data ?? []) as T[];
+    if (!page.length) {
+      if (count !== null && count !== undefined && offset < count)
+        throw new Error(
+          "تغيّرت البيانات أثناء التحميل. أعد تحميل الصفحة للمحاولة مجددًا.",
+        );
+      return rows;
+    }
+    rows.push(...page);
+    // Hosted projects can set a row cap below 500. Never skip rows by assuming
+    // the server returned the entire requested range, or stop at a short page.
+    offset += page.length;
+    if (count !== null && count !== undefined && offset >= count) return rows;
+  }
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -1265,6 +1290,119 @@ export function AppProvider({ children }: { children: ReactNode }) {
         .filter((r) => r.pair_id === pair?.id)
         .reduce((n, r) => n + (r.size ?? 0), 0)
     : (liveStorageUsage[pair?.id ?? ""] ?? 0);
+  // The selected pair is a navigation choice, not the supervisor's scope.
+  // Derive the overview from all authorized records already returned by RLS.
+  const supervisedPairSummaries: SupervisedPairSummary[] =
+    profile?.enabled && profile.is_supervisor
+      ? pairs
+          .filter((p) => p.supervisor_id === profile.id)
+          .map((supervisedPair) => {
+            const weekEnd = addDays(week, 7);
+            const weekEntries = state.entries.filter(
+              (entry) =>
+                entry.pair_id === supervisedPair.id &&
+                entry.date >= week &&
+                entry.date < weekEnd,
+            );
+            const weekTargets = state.targets.filter(
+              (target) =>
+                target.pair_id === supervisedPair.id &&
+                target.week_start === week &&
+                target.status === "confirmed",
+            );
+            const sharedTarget = weekTargets.find(
+              (target) => target.mode === "shared",
+            );
+            const localDate = today(supervisedPair.time_zone);
+            const elapsedDates = Array.from({ length: 7 }, (_, index) =>
+              addDays(week, index),
+            ).filter((date) => date <= localDate);
+            const weeklyMeetings = state.meetings.filter(
+              (meeting) =>
+                meeting.pair_id === supervisedPair.id &&
+                meeting.type === "weekly",
+            );
+            return {
+              pair: supervisedPair,
+              week_start: week,
+              members: supervisedPair.members.map((member) => {
+                const target =
+                  sharedTarget ??
+                  weekTargets.find(
+                    (target) =>
+                      target.mode === "individual" &&
+                      target.owner_id === member.id,
+                  ) ??
+                  null;
+                const memberEntries = weekEntries.filter(
+                  (entry) => entry.owner_id === member.id,
+                );
+                const activity = (name: "hifdh" | "revision") => {
+                  const planned = memberEntries
+                    .filter(
+                      (entry) => entry[`plan_${name}`].state === "planned",
+                    )
+                    .flatMap((entry) => entry[`plan_${name}`].ranges);
+                  const actual = memberEntries
+                    .filter((entry) =>
+                      ["partial", "completed"].includes(
+                        entry[`actual_${name}`].state,
+                      ),
+                    )
+                    .flatMap((entry) => entry[`actual_${name}`].ranges);
+                  return {
+                    targetAyahs: uniqueAyahs(target?.[name] ?? []),
+                    plannedAyahs: uniqueAyahs(planned),
+                    actualAyahs: uniqueAyahs(actual),
+                    completedTargetAyahs: coveredAyahs(
+                      target?.[name] ?? [],
+                      actual,
+                    ),
+                    unloggedDays: elapsedDates.filter(
+                      (date) =>
+                        !memberEntries.some(
+                          (entry) =>
+                            entry.date === date &&
+                            entry[`actual_${name}`].state !== "unlogged",
+                        ),
+                    ).length,
+                  };
+                };
+                return {
+                  profile: member,
+                  target,
+                  hifdh: activity("hifdh"),
+                  revision: activity("revision"),
+                };
+              }),
+              nextWeeklyMeeting:
+                weeklyMeetings
+                  .filter(
+                    (meeting) =>
+                      meeting.status === "planned" &&
+                      Date.parse(meeting.scheduled_at) >= Date.now(),
+                  )
+                  .sort(
+                    (a, b) =>
+                      Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at),
+                  )[0] ?? null,
+              lastWeeklyMeeting:
+                weeklyMeetings
+                  .filter(
+                    (meeting) => Date.parse(meeting.scheduled_at) < Date.now(),
+                  )
+                  .sort(
+                    (a, b) =>
+                      Date.parse(b.scheduled_at) - Date.parse(a.scheduled_at),
+                  )[0] ?? null,
+              publishedResourceCount: state.resources.filter(
+                (resource) =>
+                  resource.pair_id === supervisedPair.id &&
+                  resource.status === "published",
+              ).length,
+            };
+          })
+      : [];
   const value: AppContextValue = {
     loading,
     error,
@@ -1273,6 +1411,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     isDemo: demo,
     role,
     pairs,
+    supervisedPairSummaries,
     pair,
     currentPair: pair,
     profiles: visibleProfiles,

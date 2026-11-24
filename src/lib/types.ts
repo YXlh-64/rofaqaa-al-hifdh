@@ -51,6 +51,27 @@ export type InvitationAcceptance = {
   status: "pending" | "active" | "archived";
   name: string;
 };
+export type SupervisedActivitySummary = {
+  targetAyahs: number;
+  plannedAyahs: number;
+  actualAyahs: number;
+  completedTargetAyahs: number;
+  /** Missing or unlogged past/today dates; future dates do not count. */
+  unloggedDays: number;
+};
+export type SupervisedPairSummary = {
+  pair: Pair;
+  week_start: string;
+  members: {
+    profile: Profile;
+    target: Target | null;
+    hifdh: SupervisedActivitySummary;
+    revision: SupervisedActivitySummary;
+  }[];
+  nextWeeklyMeeting: Meeting | null;
+  lastWeeklyMeeting: Meeting | null;
+  publishedResourceCount: number;
+};
 export type Target = {
   id: string;
   pair_id: string;

@@ -1,0 +1,293 @@
+.supervisor-intro {
+  font-size: 0.9375rem;
+  color: var(--muted);
+  max-width: 38rem;
+  margin-top: 0.35rem;
+  line-height: 1.9;
+}
+.supervisor-overview-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-block: 1.5rem;
+}
+.supervisor-overview-toolbar > p {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.supervisor-overview-toolbar > p > svg {
+  color: var(--teal);
+}
+.supervisor-overview-toolbar strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+.supervisor-overview-toolbar > div {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.supervisor-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  align-items: start;
+}
+.supervisor-overview-card {
+  min-width: 0;
+}
+.supervisor-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+.supervisor-card-header h2 {
+  font-size: 1.125rem;
+  overflow-wrap: anywhere;
+}
+.supervisor-card-badges {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.supervisor-members {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+.supervisor-member-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.85rem;
+}
+.supervisor-member-heading h3 {
+  font-size: 0.9375rem;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.supervisor-member-heading .avatar {
+  width: 2.2rem;
+  height: 2.2rem;
+  font-size: 0.8rem;
+}
+.supervisor-member-activities {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.supervisor-activity {
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  padding: 0.8rem;
+  min-width: 0;
+  background: #fbfcf8;
+}
+.supervisor-activity h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin: 0 0 0.75rem;
+  color: var(--teal);
+}
+.supervisor-activity-revision h4 {
+  color: #8b6b33;
+}
+.supervisor-activity-metrics {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.875rem;
+}
+.supervisor-activity-metrics > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.supervisor-activity-metrics dt {
+  color: var(--muted);
+}
+.supervisor-activity-metrics dd {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 500;
+}
+.supervisor-target-progress {
+  font-size: 0.875rem;
+  color: var(--teal);
+  margin-top: 0.85rem;
+}
+.supervisor-activity-revision .supervisor-target-progress {
+  color: #8b6b33;
+}
+.supervisor-progress-track {
+  height: 0.3rem;
+  margin-top: 0.4rem;
+  border-radius: 1rem;
+  background: #e8ece2;
+  overflow: hidden;
+}
+.supervisor-progress-track > span {
+  display: block;
+  height: 100%;
+  max-width: 100%;
+  border-radius: inherit;
+  background: var(--teal);
+}
+.supervisor-activity-revision .supervisor-progress-track > span {
+  background: #b39661;
+}
+.supervisor-unlogged {
+  font-size: 0.875rem;
+  line-height: 1.8;
+  color: var(--muted);
+  margin-top: 0.5rem;
+}
+.supervisor-no-target {
+  margin-bottom: 0.75rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.supervisor-readonly {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.8;
+  color: #7b642e;
+  padding: 0.7rem 0.8rem;
+  margin-top: 1rem;
+  border-radius: 0.5rem;
+  background: var(--gold-soft);
+}
+.supervisor-card-review {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.875rem;
+}
+.supervisor-weekly-meeting {
+  display: flex;
+  gap: 0.5rem 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.supervisor-footer-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--ink);
+}
+.supervisor-weekly-meeting time {
+  color: var(--muted);
+}
+.supervisor-outcome-cue {
+  color: #85692f;
+}
+.supervisor-muted {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.supervisor-resource-count {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  color: var(--muted);
+}
+.supervisor-resource-count strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+.supervisor-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+.supervisor-pending-pair {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 1.5rem 0.5rem 1rem;
+  text-align: center;
+}
+.supervisor-pending-pair > svg {
+  color: var(--gold);
+}
+.supervisor-pending-pair > p:first-of-type {
+  font-weight: 500;
+}
+.supervisor-pending-pair > span {
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.8;
+}
+.supervisor-overview-note {
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.9;
+  margin-top: 1.25rem;
+}
+@media (max-width: 1150px) {
+  .supervisor-overview-grid {
+    grid-template-columns: 1fr;
+  }
+  .supervisor-overview-card {
+    padding: 1.25rem;
+  }
+}
+@media (max-width: 600px) {
+  .supervisor-member-activities {
+    grid-template-columns: 1fr;
+  }
+  .supervisor-card-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .supervisor-card-badges {
+    justify-content: flex-start;
+  }
+  .supervisor-overview-toolbar {
+    align-items: flex-start;
+    gap: 0.85rem;
+  }
+  .supervisor-overview-toolbar > div {
+    width: 100%;
+  }
+  .supervisor-overview-toolbar > div > .button {
+    flex: 1;
+  }
+  .supervisor-overview-toolbar > p > span {
+    flex-basis: 100%;
+    margin-inline-start: 1.75rem;
+  }
+  .supervisor-overview-grid {
+    gap: 1rem;
+  }
+  .supervisor-overview-card {
+    padding: 1rem;
+  }
+  .supervisor-card-actions > .button {
+    width: 100%;
+  }
+  .supervisor-intro {
+    font-size: 0.875rem;
+  }
+}
