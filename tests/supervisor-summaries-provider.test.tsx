@@ -299,13 +299,127 @@ describe("all supervised pair summaries", () => {
     const { result } = renderHook(() => useApp(), { wrapper });
     await act(async () => result.current.setDemoRole("member"));
     expect(result.current.supervisedPairSummaries).toEqual([]);
+    expect(result.current.supervisedWorkspaces).toEqual([]);
     await act(async () => result.current.setDemoRole("admin"));
     expect(result.current.supervisedPairSummaries).toEqual([]);
+    expect(result.current.supervisedWorkspaces).toEqual([]);
     await act(async () =>
       result.current.setAccountEnabled("demo-supervisor", false),
     );
     await act(async () => result.current.setDemoRole("supervisor"));
     expect(result.current.profile?.enabled).toBe(false);
     expect(result.current.supervisedPairSummaries).toEqual([]);
+    expect(result.current.supervisedWorkspaces).toEqual([]);
+  });
+
+  it("provides pair-isolated workspace records for every supervised team even when a member-only team is selected", async () => {
+    const fixture = JSON.parse(localStorage.getItem(DEMO_KEY)!) as DataState;
+    fixture.entries.push({
+      ...fixture.entries[0],
+      id: "foreign-entry",
+      pair_id: "member-only-pair",
+      owner_id: "demo-supervisor",
+    });
+    fixture.resources.push(
+      {
+        ...fixture.resources[0],
+        id: "foreign-resource",
+        pair_id: "member-only-pair",
+      },
+      {
+        ...fixture.resources[0],
+        id: "withdrawn-file",
+        pair_id: "second-pair",
+        type: "file",
+        url: null,
+        object_key: "second-pair/file.pdf",
+        size: 123,
+        mime_type: "application/pdf",
+        status: "withdrawn",
+      },
+    );
+    fixture.meetings.push({
+      ...fixture.meetings[0],
+      id: "foreign-meeting",
+      pair_id: "member-only-pair",
+    });
+    fixture.targets.push({
+      ...fixture.targets[0],
+      id: "own-proposed-target",
+      pair_id: "second-pair",
+      mode: "shared",
+      status: "proposed",
+    });
+    localStorage.setItem(DEMO_KEY, JSON.stringify(fixture));
+    const { result } = renderHook(() => useApp(), { wrapper });
+    const before = result.current.supervisedWorkspaces;
+    expect(before.map((workspace) => workspace.pair.id)).toEqual([
+      "demo-pair",
+      "second-pair",
+      "pending-pair",
+      "archived-pair",
+    ]);
+    for (const workspace of before) {
+      expect(
+        [
+          ...workspace.targets,
+          ...workspace.entries,
+          ...workspace.meetings,
+          ...workspace.resources,
+        ].every((record) => record.pair_id === workspace.pair.id),
+      ).toBe(true);
+    }
+    const second = before.find(
+      (workspace) => workspace.pair.id === "second-pair",
+    )!;
+    expect(
+      second.targets.some((target) => target.id === "own-proposed-target"),
+    ).toBe(true);
+    expect(
+      second.resources.some((resource) => resource.status === "withdrawn"),
+    ).toBe(true);
+    expect(second.storageUsageBytes).toBe(123);
+    await act(async () => result.current.setPairId("member-only-pair"));
+    expect(result.current.role).toBe("member");
+    expect(result.current.supervisedWorkspaces).toEqual(before);
+    expect(JSON.stringify(result.current.supervisedWorkspaces)).not.toContain(
+      "foreign-resource",
+    );
+  });
+
+  it("changes all workspace plans and entries with the week while retaining each team's meetings and resources", async () => {
+    const fixture = JSON.parse(localStorage.getItem(DEMO_KEY)!) as DataState;
+    fixture.targets.push({
+      ...fixture.targets[0],
+      id: "future-target",
+      pair_id: "second-pair",
+      week_start: "2026-11-29",
+    });
+    fixture.entries.push({
+      ...fixture.entries[0],
+      id: "future-entry",
+      pair_id: "second-pair",
+      date: "2026-11-29",
+    });
+    localStorage.setItem(DEMO_KEY, JSON.stringify(fixture));
+    const { result } = renderHook(() => useApp(), { wrapper });
+    const before = result.current.supervisedWorkspaces.find(
+      (workspace) => workspace.pair.id === "second-pair",
+    )!;
+    expect(before.targets.some((target) => target.id === "future-target")).toBe(
+      false,
+    );
+    expect(before.entries.some((entry) => entry.id === "future-entry")).toBe(
+      false,
+    );
+    await act(async () => result.current.setWeek("2026-11-29"));
+    const after = result.current.supervisedWorkspaces.find(
+      (workspace) => workspace.pair.id === "second-pair",
+    )!;
+    expect(after.week_start).toBe("2026-11-29");
+    expect(after.targets.map((target) => target.id)).toEqual(["future-target"]);
+    expect(after.entries.map((entry) => entry.id)).toEqual(["future-entry"]);
+    expect(after.meetings).toEqual(before.meetings);
+    expect(after.resources).toEqual(before.resources);
   });
 });

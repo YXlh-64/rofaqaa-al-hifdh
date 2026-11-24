@@ -22,6 +22,7 @@ import {
 } from "../components/ui";
 import type { Meeting as MeetingRecord, MeetingInput } from "../lib/types";
 import "./extras.css";
+import "./SupervisorMeetings.css";
 
 type MeetingType = "daily" | "weekly";
 type MeetingStatus = "planned" | "held" | "missed";
@@ -75,6 +76,7 @@ function MeetingForm({
   pairId,
   timeZone,
   supervisor,
+  supervisorView,
   onSave,
   onClose,
 }: {
@@ -82,6 +84,7 @@ function MeetingForm({
   pairId: string;
   timeZone: string;
   supervisor: boolean;
+  supervisorView: boolean;
   onSave: (value: MeetingInput) => Promise<unknown>;
   onClose: () => void;
 }) {
@@ -122,25 +125,35 @@ function MeetingForm({
   };
   return (
     <Modal
-      title={meeting ? "تحديث اللقاء" : "جدولة لقاء جديد"}
+      title={
+        meeting
+          ? "تحديث اللقاء"
+          : supervisorView
+            ? "جدولة لقاء متابعة"
+            : "جدولة لقاء جديد"
+      }
       onClose={onClose}
     >
       <form className="aux-form" onSubmit={handleSubmit}>
         <p className="aux-hint">
-          مساحة للمتابعة والتشجيع. تسجيل اللقاء مستقل عن إنجاز الحفظ والمراجعة.
+          {supervisorView
+            ? "حدّدي موعد المتابعة ورابط اللقاء وملاحظاته الخاصة بهذا الفريق."
+            : "مساحة للمتابعة والتشجيع. تسجيل اللقاء مستقل عن إنجاز الحفظ والمراجعة."}
         </p>
-        <Field label="نوع اللقاء">
-          <select
-            className="input"
-            value={type}
-            disabled={!!meeting}
-            onChange={(e) => setType(e.target.value as MeetingType)}
-          >
-            <option value={supervisor ? "weekly" : "daily"}>
-              {typeLabels[supervisor ? "weekly" : "daily"]}
-            </option>
-          </select>
-        </Field>
+        {!supervisorView && (
+          <Field label="نوع اللقاء">
+            <select
+              className="input"
+              value={type}
+              disabled={!!meeting}
+              onChange={(e) => setType(e.target.value as MeetingType)}
+            >
+              <option value={supervisor ? "weekly" : "daily"}>
+                {typeLabels[supervisor ? "weekly" : "daily"]}
+              </option>
+            </select>
+          </Field>
+        )}
         <div className="form-grid">
           <Field label="التاريخ">
             <input
@@ -162,7 +175,10 @@ function MeetingForm({
           </Field>
         </div>
         <p className="aux-hint">
-          تُعرض المواعيد بحسب توقيت الرفقة: <bdi>{timeZone}</bdi>.
+          {supervisorView
+            ? "تُعرض المواعيد بحسب توقيت الفريق:"
+            : "تُعرض المواعيد بحسب توقيت الرفقة:"}{" "}
+          <bdi>{timeZone}</bdi>.
         </p>
         <Field
           label="رابط اللقاء (اختياري)"
@@ -228,7 +244,17 @@ function MeetingForm({
   );
 }
 
-export default function Meetings() {
+export type SupervisorMeetingVisibility = "all" | "scheduled";
+
+export default function Meetings({
+  supervisorView = false,
+  visibility = "all",
+  onBack,
+}: {
+  supervisorView?: boolean;
+  visibility?: SupervisorMeetingVisibility;
+  onBack?: () => void;
+}) {
   const { profile, pair: currentPair, meetings, saveMeeting } = useApp();
   const [filter, setFilter] = useState<"all" | MeetingType>("all");
   const [editing, setEditing] = useState<MeetingRecord | "new" | null>(null);
@@ -244,7 +270,9 @@ export default function Meetings() {
         .filter(
           (m: MeetingRecord) =>
             m.pair_id === currentPair?.id &&
-            (filter === "all" || m.type === filter),
+            (supervisorView
+              ? visibility === "all" || m.type === "weekly"
+              : filter === "all" || m.type === filter),
         )
         .sort((a: MeetingRecord, b: MeetingRecord) => {
           const aUpcoming =
@@ -256,23 +284,57 @@ export default function Meetings() {
             ? Date.parse(a.scheduled_at) - Date.parse(b.scheduled_at)
             : Date.parse(b.scheduled_at) - Date.parse(a.scheduled_at);
         }),
-    [meetings, currentPair?.id, filter],
+    [meetings, currentPair?.id, filter, supervisorView, visibility],
   );
+  const sections = supervisorView
+    ? [
+        {
+          kind: "daily",
+          title: "اللقاءات الداخلية",
+          description: "بين أعضاء الفريق",
+        },
+        {
+          kind: "weekly",
+          title: "لقاءات المتابعة",
+          description: "بمشاركة المشرفة",
+        },
+      ].filter((section) => visibility === "all" || section.kind === "weekly")
+    : [{ kind: "all", title: "", description: "" }];
   if (!currentPair)
     return (
       <EmptyState
-        title="لا توجد رفقة لعرض لقاءاتها"
-        description="تظهر اللقاءات بعد انضمام الرفيقين وتفعيل الرفقة."
+        title={
+          supervisorView
+            ? "لا يوجد فريق لعرض لقاءاته"
+            : "لا توجد رفقة لعرض لقاءاتها"
+        }
+        description={
+          supervisorView
+            ? "اختر فريقًا من قائمة لقاءات الفرق."
+            : "تظهر اللقاءات بعد انضمام الرفيقين وتفعيل الرفقة."
+        }
       />
     );
   return (
     <div className="meetings-page">
+      {supervisorView && onBack && (
+        <div className="view-toolbar">
+          <Button variant="ghost" onClick={onBack}>
+            <UsersRound size={17} />
+            كل لقاءات الرفقاء
+          </Button>
+        </div>
+      )}
       <div className="page-heading">
         <div>
-          <p className="eyebrow">نلتقي لنثبت</p>
-          <h1>اللقاءات</h1>
+          <p className="eyebrow">
+            {supervisorView ? "متابعة الفريق" : "نلتقي لنثبت"}
+          </p>
+          <h1>{supervisorView ? `لقاءات ${currentPair.name}` : "اللقاءات"}</h1>
           <p className="page-intro">
-            موعد يجمعكما، وخطوة تُعينكما على الاستمرار.
+            {supervisorView
+              ? "نظّم المواعيد، وتابع النتائج والملاحظات الخاصة بهذا الفريق."
+              : "موعد يجمعكما، وخطوة تُعينكما على الاستمرار."}
           </p>
         </div>
         <Button disabled={readOnly} onClick={() => setEditing("new")}>
@@ -283,175 +345,248 @@ export default function Meetings() {
       {readOnly && (
         <p className="readonly-notice">
           <LockKeyhole size={17} />
-          هذه الرفقة للقراءة فقط حاليًا؛ لا يمكن تعديل اللقاءات.
+          {supervisorView
+            ? "هذا الفريق للقراءة فقط حاليًا؛ لا يمكن تعديل اللقاءات."
+            : "هذه الرفقة للقراءة فقط حاليًا؛ لا يمكن تعديل اللقاءات."}
         </p>
       )}
       <div className="view-toolbar">
-        <div className="filter-tabs" role="group" aria-label="تصفية اللقاءات">
-          {(["all", "daily", "weekly"] as const).map((value) => (
-            <button
-              type="button"
-              key={value}
-              aria-pressed={filter === value}
-              onClick={() => setFilter(value)}
-            >
-              {value === "all"
-                ? "كل اللقاءات"
-                : value === "daily"
-                  ? "اللقاءات اليومية"
-                  : "مع المشرف"}
-            </button>
-          ))}
-        </div>
+        {!supervisorView && (
+          <div className="filter-tabs" role="group" aria-label="تصفية اللقاءات">
+            {(["all", "daily", "weekly"] as const).map((value) => (
+              <button
+                type="button"
+                key={value}
+                aria-pressed={filter === value}
+                onClick={() => setFilter(value)}
+              >
+                {value === "all"
+                  ? "كل اللقاءات"
+                  : value === "daily"
+                    ? "اللقاءات اليومية"
+                    : "مع المشرف"}
+              </button>
+            ))}
+          </div>
+        )}
         <span className="aux-hint">
-          توقيت الرفقة: <bdi>{timeZone}</bdi>
+          {supervisorView ? "توقيت الفريق:" : "توقيت الرفقة:"}{" "}
+          <bdi>{timeZone}</bdi>
         </span>
       </div>
-      {visible.length === 0 ? (
-        <EmptyState
-          title="مساحة للقاء القادم"
-          description={
-            supervisor
-              ? "حدّدي موعدًا أسبوعيًا لمراجعة المسار مع الرفيقين."
-              : "حدّدا موعدًا يوميًا مناسبًا للتسميع والمتابعة."
-          }
-          action={
-            !readOnly && (
-              <Button variant="secondary" onClick={() => setEditing("new")}>
-                جدولة أول لقاء
-              </Button>
-            )
-          }
-        />
-      ) : (
-        <div className="meeting-list">
-          {visible.map((meeting: MeetingRecord) => {
-            const date = new Date(meeting.scheduled_at);
-            const canEdit =
-              !readOnly &&
-              (supervisor
-                ? meeting.type === "weekly"
-                : meeting.type === "daily");
-            const editor =
-              meeting.updated_by === profile?.id
-                ? profile.display_name
-                : currentPair.members.find(
-                    (p: { id: string; display_name: string }) =>
-                      p.id === meeting.updated_by,
-                  )?.display_name;
-            return (
-              <article className="meeting-card" key={meeting.id}>
-                <div className="meeting-date-tile" aria-hidden="true">
-                  <strong>
-                    {new Intl.DateTimeFormat("ar-DZ", {
-                      numberingSystem: "arab",
-                      day: "numeric",
-                      timeZone,
-                    }).format(date)}
-                  </strong>
-                  <span>
-                    {new Intl.DateTimeFormat("ar-DZ", {
-                      numberingSystem: "arab",
-                      month: "short",
-                      timeZone,
-                    }).format(date)}
-                  </span>
-                </div>
-                <div className="meeting-content">
-                  <div className="meeting-type-label">
-                    <Badge tone={meeting.type === "weekly" ? "gold" : "teal"}>
-                      {meeting.type === "weekly" ? "مع المشرف" : "بين الرفيقين"}
-                    </Badge>
-                    <Badge
-                      tone={
-                        meeting.status === "held"
-                          ? "teal"
-                          : meeting.status === "missed"
-                            ? "red"
-                            : "muted"
-                      }
+      {sections.map((section) => {
+        const sectionMeetings =
+          section.kind === "all"
+            ? visible
+            : visible.filter((meeting) => meeting.type === section.kind);
+        return (
+          <section
+            key={section.kind}
+            className={
+              supervisorView ? "supervisor-meeting-section" : undefined
+            }
+            aria-label={section.title || undefined}
+          >
+            {supervisorView && (
+              <div className="supervisor-meeting-section-heading">
+                <h2>{section.title}</h2>
+                <p>{section.description}</p>
+              </div>
+            )}
+            {sectionMeetings.length === 0 ? (
+              <EmptyState
+                title={
+                  supervisorView
+                    ? section.kind === "daily"
+                      ? "لا توجد لقاءات داخلية مسجّلة"
+                      : "لا توجد لقاءات متابعة مسجّلة"
+                    : "مساحة للقاء القادم"
+                }
+                description={
+                  supervisorView
+                    ? section.kind === "daily"
+                      ? "تظهر هنا المواعيد التي يسجّلها أعضاء الفريق."
+                      : "يمكنك تحديد موعد المتابعة المناسب عند تفعيل الفريق."
+                    : supervisor
+                      ? "حدّدي موعدًا أسبوعيًا لمراجعة المسار مع الرفيقين."
+                      : "حدّدا موعدًا يوميًا مناسبًا للتسميع والمتابعة."
+                }
+                action={
+                  !readOnly &&
+                  (!supervisorView || section.kind === "weekly") && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => setEditing("new")}
                     >
-                      {statusLabels[meeting.status]}
-                    </Badge>
-                  </div>
-                  <h2>{typeLabels[meeting.type]}</h2>
-                  <div className="meeting-meta">
-                    <span>
-                      <CalendarDays size={15} />
-                      {new Intl.DateTimeFormat("ar-DZ", {
-                        numberingSystem: "arab",
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                        timeZone,
-                      }).format(date)}
-                    </span>
-                    <span>
-                      <Clock3 size={15} />
-                      {new Intl.DateTimeFormat("ar-DZ", {
-                        numberingSystem: "arab",
-                        hour: "numeric",
-                        minute: "2-digit",
-                        timeZone,
-                      }).format(date)}
-                    </span>
-                    <span>
-                      <UsersRound size={15} />
-                      {meeting.type === "weekly"
-                        ? "الرفيقان والمشرف"
-                        : "الرفيقان"}
-                    </span>
-                  </div>
-                  {meeting.status === "planned" &&
-                    Date.parse(meeting.scheduled_at) < Date.now() && (
-                      <p className="meeting-past-cue">
-                        مرّ موعد اللقاء؛ سجّلوا النتيجة عندما تتاح لكم الفرصة.
-                      </p>
-                    )}
-                  {meeting.note && (
-                    <p className="meeting-notes">{meeting.note}</p>
-                  )}
-                  <p className="aux-hint">
-                    آخر تحديث{editor ? ` بواسطة ${editor}` : ""} ·{" "}
-                    {new Intl.DateTimeFormat("ar-DZ", {
-                      numberingSystem: "arab",
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                      timeZone,
-                    }).format(new Date(meeting.updated_at))}
-                  </p>
-                </div>
-                <div className="meeting-actions">
-                  {meeting.link && (
-                    <a
-                      className="button button-secondary"
-                      href={meeting.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLink size={16} />
-                      رابط اللقاء
-                    </a>
-                  )}
-                  {canEdit && (
-                    <Button variant="ghost" onClick={() => setEditing(meeting)}>
-                      <Pencil size={16} />
-                      تحديث اللقاء
+                      جدولة أول لقاء
                     </Button>
-                  )}
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      )}
+                  )
+                }
+              />
+            ) : (
+              <div className="meeting-list">
+                {sectionMeetings.map((meeting: MeetingRecord) => {
+                  const date = new Date(meeting.scheduled_at);
+                  const canEdit =
+                    !readOnly &&
+                    (supervisor
+                      ? meeting.type === "weekly"
+                      : meeting.type === "daily");
+                  const editor =
+                    meeting.updated_by === profile?.id
+                      ? profile.display_name
+                      : currentPair.members.find(
+                          (p: { id: string; display_name: string }) =>
+                            p.id === meeting.updated_by,
+                        )?.display_name;
+                  return (
+                    <article className="meeting-card" key={meeting.id}>
+                      <div className="meeting-date-tile" aria-hidden="true">
+                        <strong>
+                          {new Intl.DateTimeFormat("ar-DZ", {
+                            numberingSystem: "arab",
+                            day: "numeric",
+                            timeZone,
+                          }).format(date)}
+                        </strong>
+                        <span>
+                          {new Intl.DateTimeFormat("ar-DZ", {
+                            numberingSystem: "arab",
+                            month: "short",
+                            timeZone,
+                          }).format(date)}
+                        </span>
+                      </div>
+                      <div className="meeting-content">
+                        <div className="meeting-type-label">
+                          {!supervisorView && (
+                            <Badge
+                              tone={meeting.type === "weekly" ? "gold" : "teal"}
+                            >
+                              {meeting.type === "weekly"
+                                ? "مع المشرف"
+                                : "بين الرفيقين"}
+                            </Badge>
+                          )}
+                          <Badge
+                            tone={
+                              meeting.status === "held"
+                                ? "teal"
+                                : meeting.status === "missed"
+                                  ? "red"
+                                  : "muted"
+                            }
+                          >
+                            {statusLabels[meeting.status]}
+                          </Badge>
+                        </div>
+                        {supervisorView ? (
+                          <h3>
+                            {meeting.type === "daily"
+                              ? "لقاء داخلي"
+                              : "لقاء متابعة"}
+                          </h3>
+                        ) : (
+                          <h2>{typeLabels[meeting.type]}</h2>
+                        )}
+                        <div className="meeting-meta">
+                          <span>
+                            <CalendarDays size={15} />
+                            {new Intl.DateTimeFormat("ar-DZ", {
+                              numberingSystem: "arab",
+                              weekday: "long",
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                              timeZone,
+                            }).format(date)}
+                          </span>
+                          <span>
+                            <Clock3 size={15} />
+                            {new Intl.DateTimeFormat("ar-DZ", {
+                              numberingSystem: "arab",
+                              hour: "numeric",
+                              minute: "2-digit",
+                              timeZone,
+                            }).format(date)}
+                          </span>
+                          <span>
+                            <UsersRound size={15} />
+                            {supervisorView
+                              ? [
+                                  ...currentPair.members.map(
+                                    (member) => member.display_name,
+                                  ),
+                                  ...(meeting.type === "weekly"
+                                    ? [
+                                        currentPair.supervisor?.display_name ??
+                                          profile?.display_name,
+                                      ].filter(Boolean)
+                                    : []),
+                                ].join("، ")
+                              : meeting.type === "weekly"
+                                ? "الرفيقان والمشرف"
+                                : "الرفيقان"}
+                          </span>
+                        </div>
+                        {meeting.status === "planned" &&
+                          Date.parse(meeting.scheduled_at) < Date.now() && (
+                            <p className="meeting-past-cue">
+                              {supervisorView && meeting.type === "daily"
+                                ? "بانتظار تسجيل أعضاء الفريق لنتيجة اللقاء."
+                                : "مرّ موعد اللقاء؛ سجّلوا النتيجة عندما تتاح لكم الفرصة."}
+                            </p>
+                          )}
+                        {meeting.note && (
+                          <p className="meeting-notes">{meeting.note}</p>
+                        )}
+                        <p className="aux-hint">
+                          آخر تحديث{editor ? ` بواسطة ${editor}` : ""} ·{" "}
+                          {new Intl.DateTimeFormat("ar-DZ", {
+                            numberingSystem: "arab",
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                            timeZone,
+                          }).format(new Date(meeting.updated_at))}
+                        </p>
+                      </div>
+                      <div className="meeting-actions">
+                        {meeting.link && (
+                          <a
+                            className="button button-secondary"
+                            href={meeting.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink size={16} />
+                            رابط اللقاء
+                          </a>
+                        )}
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            onClick={() => setEditing(meeting)}
+                          >
+                            <Pencil size={16} />
+                            تحديث اللقاء
+                          </Button>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        );
+      })}
       {editing && (
         <MeetingForm
           meeting={editing === "new" ? undefined : editing}
           pairId={currentPair.id}
           timeZone={timeZone}
           supervisor={supervisor}
+          supervisorView={supervisorView}
           onSave={saveMeeting}
           onClose={() => setEditing(null)}
         />

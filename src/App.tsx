@@ -30,6 +30,9 @@ import { dateText, initials, localToday } from "./components/presentation";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import SupervisorDashboard from "./pages/SupervisorDashboard";
+import SupervisorTeamView from "./pages/SupervisorTeamView";
+import SupervisorResources from "./pages/SupervisorResources";
+import SupervisorMeetings from "./pages/SupervisorMeetings";
 import Planning from "./pages/Planning";
 import Progress from "./pages/Progress";
 import Meetings from "./pages/Meetings";
@@ -45,10 +48,12 @@ const pages = [
   { id: "meetings", title: "اللقاءات", icon: CalendarDays },
   { id: "resources", title: "الموارد", icon: FolderOpen },
 ];
-function workspaceIdFromHash() {
-  if (!location.hash.startsWith("#workspace=")) return null;
+const scopedPages = ["workspace", "team-resources", "team-meetings"];
+function scopedPairIdFromHash() {
+  const route = location.hash.slice(1).split("=")[0];
+  if (!scopedPages.includes(route) || !location.hash.includes("=")) return null;
   try {
-    return decodeURIComponent(location.hash.slice("#workspace=".length));
+    return decodeURIComponent(location.hash.slice(route.length + 2));
   } catch {
     return null;
   }
@@ -139,7 +144,7 @@ export default function App() {
   useEffect(() => {
     const handle = () => {
       setPage(readPage());
-      const workspaceId = workspaceIdFromHash();
+      const workspaceId = scopedPairIdFromHash();
       if (workspaceId) setPairId(workspaceId);
     };
     handle();
@@ -182,11 +187,19 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "instant" });
     document.getElementById("main-content")?.focus();
   };
-  const openPairWorkspace = (id: string) => {
-    if (!pairs.some((candidate) => candidate.id === id)) return;
+  const openTeamPage = (id: string, destination: string) => {
+    if (
+      !pairs.some(
+        (candidate) =>
+          candidate.id === id &&
+          (!profile?.is_supervisor || candidate.supervisor_id === profile.id),
+      )
+    )
+      return;
     setPairId(id);
-    navigate(`workspace=${encodeURIComponent(id)}`);
+    navigate(`${destination}=${encodeURIComponent(id)}`);
   };
+  const openPairWorkspace = (id: string) => openTeamPage(id, "workspace");
   const handleLogout = () => {
     setMobileOpen(false);
     setHelp(false);
@@ -238,25 +251,51 @@ export default function App() {
           ...(profile.is_supervisor
             ? [{ id: "pairs", title: "الرفقاء", icon: Users }]
             : []),
-          ...pages,
+          ...(profile.is_supervisor
+            ? pages
+                .filter((entry) => !["plan", "progress"].includes(entry.id))
+                .map((entry) =>
+                  entry.id === "dashboard"
+                    ? { ...entry, title: "مساحاتي" }
+                    : entry,
+                )
+            : pages),
         ];
-  const title =
-    page === "workspace"
-      ? (pair?.name ?? "مساحة الرفقة")
-      : ([
-          ...visiblePages,
-          { id: "settings", title: "الإعدادات" },
-          { id: "admin", title: "إدارة الحسابات" },
-        ].find((p) => p.id === page)?.title ?? "مساحتي");
+  const title = scopedPages.includes(page)
+    ? (pair?.name ?? "مساحة الرفقة")
+    : ([
+        ...visiblePages,
+        { id: "settings", title: "الإعدادات" },
+        { id: "admin", title: "إدارة الحسابات" },
+      ].find((p) => p.id === page)?.title ??
+      (profile.is_supervisor ? "مساحاتي" : "مساحتي"));
   const actualPage =
-    role === "admin" && !["settings", "admin"].includes(page) ? "admin" : page;
-  const navPage = actualPage === "workspace" ? "dashboard" : actualPage;
+    role === "admin" && !["settings", "admin"].includes(page)
+      ? "admin"
+      : profile.is_supervisor && ["plan", "progress"].includes(page)
+        ? "dashboard"
+        : page;
+  const navPage =
+    actualPage === "workspace"
+      ? "dashboard"
+      : actualPage === "team-resources"
+        ? "resources"
+        : actualPage === "team-meetings"
+          ? "meetings"
+          : actualPage;
   const supervisorOverview =
     actualPage === "dashboard" && profile.is_supervisor;
-  const workspaceId = workspaceIdFromHash();
+  const workspaceId = scopedPairIdFromHash();
+  const requestedPair = pairs.find((candidate) => candidate.id === workspaceId);
   const unavailableWorkspace =
-    actualPage === "workspace" &&
-    (!workspaceId || !pairs.some((candidate) => candidate.id === workspaceId));
+    scopedPages.includes(actualPage) &&
+    (!requestedPair ||
+      (profile.is_supervisor && requestedPair.supervisor_id !== profile.id) ||
+      (actualPage !== "workspace" && !profile.is_supervisor));
+  const selectingWorkspace =
+    scopedPages.includes(actualPage) &&
+    !unavailableWorkspace &&
+    requestedPair?.id !== pair?.id;
   return (
     <>
       <a
@@ -379,7 +418,7 @@ export default function App() {
             </div>
           </div>
           <div className="topbar-actions">
-            {pairs.length > 1 && role !== "admin" && !supervisorOverview && (
+            {pairs.length > 1 && role !== "admin" && !profile.is_supervisor && (
               <select
                 className="pair-select"
                 aria-label="الرفقة الحالية"
@@ -453,27 +492,55 @@ export default function App() {
                 </Button>
               }
             />
+          ) : selectingWorkspace ? (
+            <p role="status">جارٍ فتح مساحة الرفقة…</p>
+          ) : actualPage === "workspace" && profile.is_supervisor ? (
+            <SupervisorTeamView
+              key={pair?.id}
+              onBack={() => navigate("dashboard")}
+              onResources={() =>
+                pair && openTeamPage(pair.id, "team-resources")
+              }
+              onMeetings={() => pair && openTeamPage(pair.id, "team-meetings")}
+              onManageInvites={() => navigate("pairs")}
+            />
+          ) : actualPage === "team-resources" ? (
+            <Resources
+              key={pair?.id}
+              supervisorView
+              onBack={() => navigate("resources")}
+            />
+          ) : actualPage === "team-meetings" ? (
+            <Meetings
+              key={pair?.id}
+              supervisorView
+              visibility="all"
+              onBack={() => navigate("meetings")}
+            />
           ) : actualPage === "dashboard" || actualPage === "workspace" ? (
-            <>
-              {profile.is_supervisor && (
-                <div className="view-toolbar">
-                  <Button variant="ghost" onClick={() => navigate("dashboard")}>
-                    <Users size={17} />
-                    كل مساحاتي
-                  </Button>
-                  <strong>{pair?.name}</strong>
-                </div>
-              )}
-              <Dashboard key={pair?.id} navigate={navigate} />
-            </>
+            <Dashboard key={pair?.id} navigate={navigate} />
           ) : actualPage === "plan" ? (
             <Planning />
           ) : actualPage === "progress" ? (
             <Progress />
           ) : actualPage === "meetings" ? (
-            <Meetings />
+            profile.is_supervisor ? (
+              <SupervisorMeetings
+                visibility="all"
+                onOpenTeam={(id) => openTeamPage(id, "team-meetings")}
+              />
+            ) : (
+              <Meetings />
+            )
           ) : actualPage === "resources" ? (
-            <Resources />
+            profile.is_supervisor ? (
+              <SupervisorResources
+                onOpenTeam={(id) => openTeamPage(id, "team-resources")}
+                navigate={navigate}
+              />
+            ) : (
+              <Resources />
+            )
           ) : actualPage === "pairs" && profile.is_supervisor ? (
             <Pairs navigate={navigate} />
           ) : actualPage === "settings" ? (
@@ -510,33 +577,59 @@ export default function App() {
       )}
       {help && (
         <Modal title="دليل مساحتك" onClose={() => setHelp(false)}>
-          <div className="settings-list">
-            <div>
-              <strong>١. اتّفقا على هدف</strong>
-              <p>
-                لكل شخص هدف فردي، أو يقترح أحدكما هدفًا مشتركًا ويوافق عليه الآخر.
-              </p>
+          {profile.is_supervisor ? (
+            <div className="settings-list">
+              <div>
+                <strong>متابعة الفرق</strong>
+                <p>
+                  تعرض مساحاتي كل فرقك. افتحي أي فريق لمراجعة خطط الرفيقين
+                  وإنجاز كل منهما.
+                </p>
+              </div>
+              <div>
+                <strong>موارد كل فريق</strong>
+                <p>
+                  اختاري الفريق من صفحة الموارد لمشاركة روابط وملفات خاصة به.
+                </p>
+              </div>
+              <div>
+                <strong>تنظيم اللقاءات</strong>
+                <p>
+                  اختاري الفريق من صفحة اللقاءات لعرض مواعيده وجدولة اللقاء
+                  وتسجيل نتيجته.
+                </p>
+              </div>
             </div>
-            <div>
-              <strong>٢. خطّط ليومك وسجّل إنجازك</strong>
-              <p>
-                الحفظ والمراجعة نشاطان مستقلان. يمكنك تسجيل إنجاز جزئي أو عمل
-                خارج الخطة.
-              </p>
+          ) : (
+            <div className="settings-list">
+              <div>
+                <strong>١. اتّفقا على هدف</strong>
+                <p>
+                  لكل شخص هدف فردي، أو يقترح أحدكما هدفًا مشتركًا ويوافق عليه
+                  الآخر.
+                </p>
+              </div>
+              <div>
+                <strong>٢. خطّط ليومك وسجّل إنجازك</strong>
+                <p>
+                  الحفظ والمراجعة نشاطان مستقلان. يمكنك تسجيل إنجاز جزئي أو عمل
+                  خارج الخطة.
+                </p>
+              </div>
+              <div>
+                <strong>٣. التقيا على الخير</strong>
+                <p>
+                  اللقاء اليومي للرفيقين، واللقاء الأسبوعي مع المشرف. حضور
+                  اللقاء مستقل عن إنجاز الحفظ.
+                </p>
+              </div>
+              <div>
+                <strong>٤. تزوّدا بما ينفع</strong>
+                <p>يشارك المشرف روابط وملفات خاصة برفقتكما، لا تظهر لغيركما.</p>
+              </div>
+              <Badge tone="gold">الأسبوع يبدأ الأحد · بتوقيت الجزائر</Badge>
             </div>
-            <div>
-              <strong>٣. التقيا على الخير</strong>
-              <p>
-                اللقاء اليومي للرفيقين، واللقاء الأسبوعي مع المشرف. حضور اللقاء
-                مستقل عن إنجاز الحفظ.
-              </p>
-            </div>
-            <div>
-              <strong>٤. تزوّدا بما ينفع</strong>
-              <p>يشارك المشرف روابط وملفات خاصة برفقتكما، لا تظهر لغيركما.</p>
-            </div>
-            <Badge tone="gold">الأسبوع يبدأ الأحد · بتوقيت الجزائر</Badge>
-          </div>
+          )}
         </Modal>
       )}
     </>

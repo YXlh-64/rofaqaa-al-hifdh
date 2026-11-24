@@ -245,7 +245,7 @@ describe("supervisor overview", () => {
       ),
     ];
     render(<SupervisorDashboard onOpenPair={vi.fn()} navigate={vi.fn()} />);
-    expect(card().getByText("آخر لقاء أسبوعي")).toBeVisible();
+    expect(card().getByText("آخر لقاء متابعة")).toBeVisible();
     expect(card().getByText("مجدول")).toBeVisible();
     expect(card().getByText("بانتظار تسجيل النتيجة")).toBeVisible();
     expect(card().queryByText("لم يتمّ اللقاء")).not.toBeInTheDocument();

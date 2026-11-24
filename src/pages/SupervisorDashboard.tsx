@@ -96,9 +96,9 @@ function WeeklyMeeting({
         <CalendarDays size={16} />
         {meeting
           ? upcoming
-            ? "اللقاء الأسبوعي القادم"
-            : "آخر لقاء أسبوعي"
-          : "اللقاء الأسبوعي"}
+            ? "لقاء المتابعة القادم"
+            : "آخر لقاء متابعة"
+          : "لقاءات المتابعة"}
       </span>
       {meeting ? (
         <>
@@ -133,7 +133,7 @@ function WeeklyMeeting({
           )}
         </>
       ) : (
-        <span className="supervisor-muted">لم يُحدّد لقاء أسبوعي بعد</span>
+        <span className="supervisor-muted">لم يُحدّد لقاء متابعة بعد</span>
       )}
     </div>
   );

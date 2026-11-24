@@ -1,5 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  act,
   cleanup,
   render,
   screen,
@@ -263,11 +264,23 @@ describe("Arabic workspace journeys with isolated test fixtures", () => {
     expect(
       screen.queryByRole("combobox", { name: "الرفقة الحالية" }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "خطة الأسبوع" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "سجلّ الإنجاز" }),
+    ).not.toBeInTheDocument();
 
     await user.click(
       screen.getByRole("button", { name: "فتح مساحة رفقة الفجر" }),
     );
-    await screen.findByRole("heading", { name: /معًا، نُثبّت/ });
+    await screen.findByRole("heading", { name: "رفقة الفجر", level: 1 });
+    expect(
+      screen.queryByRole("heading", { name: /معًا، نُثبّت/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "تسجيل إنجاز اليوم" }),
+    ).not.toBeInTheDocument();
     expect(snapshot().pair?.id).toBe("second-pair");
     expect(
       snapshot().entries.every((entry) => entry.pair_id === "second-pair"),
@@ -277,13 +290,15 @@ describe("Arabic workspace journeys with isolated test fixtures", () => {
     ).toEqual(["سارة منصور", "حفصة أمين"]);
     expect(location.hash).toBe("#workspace=second-pair");
 
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "الرفقة الحالية" }),
-      "demo-pair",
+    await user.click(
+      screen.getByRole("button", { name: "العودة إلى مساحاتي" }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "فتح مساحة رفقة النور" }),
     );
     expect(snapshot().pair?.id).toBe("demo-pair");
     expect(location.hash).toBe("#workspace=demo-pair");
-    await user.click(screen.getByRole("link", { name: "مساحتي" }));
+    await user.click(screen.getByRole("link", { name: "مساحاتي" }));
     expect(
       await screen.findByRole("heading", { name: "مساحاتي" }),
     ).toBeVisible();
@@ -299,7 +314,7 @@ describe("Arabic workspace journeys with isolated test fixtures", () => {
     );
     expect(snapshot().pair?.id).toBe("second-pair");
     expect(
-      await screen.findByRole("button", { name: "كل مساحاتي" }),
+      await screen.findByRole("button", { name: "العودة إلى مساحاتي" }),
     ).toBeVisible();
   });
 
@@ -309,7 +324,7 @@ describe("Arabic workspace journeys with isolated test fixtures", () => {
     const first = renderApp();
     await waitFor(() => expect(snapshot().pair?.id).toBe("second-pair"));
     expect(
-      await screen.findByRole("heading", { name: /معًا، نُثبّت/ }),
+      await screen.findByRole("heading", { name: "رفقة الفجر", level: 1 }),
     ).toBeVisible();
     first.unmount();
     const second = renderApp();
@@ -328,6 +343,115 @@ describe("Arabic workspace journeys with isolated test fixtures", () => {
     expect(
       screen.queryByRole("heading", { name: /معًا، نُثبّت/ }),
     ).not.toBeInTheDocument();
+  });
+
+  it("keeps supervisor resources and meeting actions specific to the selected team", async () => {
+    const user = userEvent.setup();
+    seedSupervisorGroups();
+    renderApp();
+    await user.click(screen.getByRole("link", { name: "الموارد" }));
+    expect(screen.getByRole("heading", { name: "رفقة النور" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "رفقة الفجر" })).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: "مشاركة مورد" }),
+    ).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "إدارة موارد رفقة الفجر" }),
+    );
+    expect(
+      await screen.findByRole("heading", { name: "موارد رفقة الفجر" }),
+    ).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "مشاركة مورد" }));
+    const resourceForm = within(
+      screen.getByRole("dialog", { name: "مشاركة مورد مع الرفقة" }),
+    );
+    await user.type(
+      resourceForm.getByRole("textbox", { name: "عنوان المورد" }),
+      "مورد خاص بالفجر",
+    );
+    await user.type(
+      resourceForm.getByRole("textbox", { name: /^الرابط/ }),
+      "https://example.test/fajr",
+    );
+    await user.click(
+      resourceForm.getByRole("button", { name: "مشاركة المورد" }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(
+      snapshot().resources.find(
+        (resource) => resource.title === "مورد خاص بالفجر",
+      )?.pair_id,
+    ).toBe("second-pair");
+    await user.click(screen.getByRole("link", { name: "الموارد" }));
+    await user.click(
+      screen.getByRole("button", { name: "إدارة موارد رفقة النور" }),
+    );
+    expect(
+      await screen.findByRole("heading", { name: "موارد رفقة النور" }),
+    ).toBeVisible();
+    expect(screen.queryByText("مورد خاص بالفجر")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("link", { name: "اللقاءات" }));
+    const secondTeam = screen.getByRole("article", { name: "رفقة الفجر" });
+    await user.click(
+      within(secondTeam).getByRole("button", { name: "فتح لقاءات الفريق" }),
+    );
+    expect(
+      await screen.findByRole("heading", { name: "لقاءات رفقة الفجر" }),
+    ).toBeVisible();
+    expect(screen.queryByText("مع المشرف")).not.toBeInTheDocument();
+    expect(screen.queryByText("اللقاءات اليومية")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "جدولة لقاء" }));
+    const meetingForm = within(
+      screen.getByRole("dialog", { name: "جدولة لقاء متابعة" }),
+    );
+    expect(
+      meetingForm.queryByRole("combobox", { name: "نوع اللقاء" }),
+    ).not.toBeInTheDocument();
+    await user.type(
+      meetingForm.getByRole("textbox", { name: "ملاحظات (اختياري)" }),
+      "لقاء خاص بفريق الفجر",
+    );
+    await user.click(meetingForm.getByRole("button", { name: "جدولة اللقاء" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(
+      snapshot().meetings.find(
+        (meeting) => meeting.note === "لقاء خاص بفريق الفجر",
+      ),
+    ).toMatchObject({ pair_id: "second-pair", type: "weekly" });
+    await user.click(screen.getByRole("link", { name: "اللقاءات" }));
+    await user.click(
+      within(screen.getByRole("article", { name: "رفقة النور" })).getByRole(
+        "button",
+        { name: "فتح لقاءات الفريق" },
+      ),
+    );
+    expect(
+      await screen.findByRole("heading", { name: "لقاءات رفقة النور" }),
+    ).toBeVisible();
+    expect(screen.queryByText("لقاء خاص بفريق الفجر")).not.toBeInTheDocument();
+
+    await act(async () => {
+      window.location.hash = "#plan";
+    });
+    expect(
+      await screen.findByRole("heading", { name: "مساحاتي" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: "إضافة هدف" }),
+    ).not.toBeInTheDocument();
+    await act(async () => {
+      window.location.hash = "#team-resources=unrelated-pair";
+    });
+    expect(
+      await screen.findByRole("heading", {
+        name: "هذه الرفقة غير متاحة لحسابك",
+      }),
+    ).toBeVisible();
   });
 
   it("starts without exposing private workspaces or a public demo entry", async () => {
@@ -497,17 +621,30 @@ describe("Arabic workspace journeys with isolated test fixtures", () => {
     ).not.toBeInTheDocument();
     await changeRole(user, "مشرف");
     await user.click(screen.getByRole("link", { name: "اللقاءات" }));
+    await user.click(
+      within(screen.getByRole("article", { name: "رفقة النور" })).getByRole(
+        "button",
+        { name: "فتح لقاءات الفريق" },
+      ),
+    );
     expect(
-      meetingCard("لقاء يومي بين الرفيقين").queryByRole("button", {
-        name: "تحديث اللقاء",
-      }),
-    ).not.toBeInTheDocument();
-    expect(
-      meetingCard("لقاء أسبوعي مع المشرف").getByRole("button", {
-        name: "تحديث اللقاء",
-      }),
+      await screen.findByRole("heading", { name: "لقاءات رفقة النور" }),
     ).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "اللقاءات الداخلية" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "لقاءات المتابعة" }),
+    ).toBeVisible();
+    expect(screen.getByText("تمّ اللقاء")).toBeVisible();
+    expect(
+      screen.queryByRole("heading", { name: "لقاء يومي بين الرفيقين" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "تحديث اللقاء" })).toBeVisible();
     await user.click(screen.getByRole("link", { name: "الموارد" }));
+    await user.click(
+      screen.getByRole("button", { name: "إدارة موارد رفقة النور" }),
+    );
     expect(screen.getByRole("button", { name: "مشاركة مورد" })).toBeVisible();
 
     await changeRole(user, "مسؤول");

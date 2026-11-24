@@ -37,6 +37,7 @@ import type {
   ResourceInput,
   Role,
   SupervisedPairSummary,
+  SupervisedWorkspace,
   Target,
   TargetInput,
 } from "../lib/types";
@@ -57,6 +58,7 @@ export interface AppContextValue {
   role: Role;
   pairs: Pair[];
   supervisedPairSummaries: SupervisedPairSummary[];
+  supervisedWorkspaces: SupervisedWorkspace[];
   pair: Pair | null;
   currentPair: Pair | null;
   profiles: Profile[];
@@ -1403,6 +1405,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
             };
           })
       : [];
+  const supervisedWorkspaces: SupervisedWorkspace[] =
+    supervisedPairSummaries.map(({ pair: supervisedPair }) => ({
+      pair: supervisedPair,
+      week_start: week,
+      targets: state.targets.filter(
+        (target) =>
+          target.pair_id === supervisedPair.id && target.week_start === week,
+      ),
+      entries: state.entries.filter(
+        (entry) =>
+          entry.pair_id === supervisedPair.id &&
+          entry.date >= week &&
+          entry.date < addDays(week, 7),
+      ),
+      meetings: state.meetings.filter(
+        (meeting) => meeting.pair_id === supervisedPair.id,
+      ),
+      resources: state.resources.filter(
+        (resource) => resource.pair_id === supervisedPair.id,
+      ),
+      storageUsageBytes: demo
+        ? state.resources
+            .filter((resource) => resource.pair_id === supervisedPair.id)
+            .reduce((total, resource) => total + (resource.size ?? 0), 0)
+        : (liveStorageUsage[supervisedPair.id] ?? 0),
+    }));
   const value: AppContextValue = {
     loading,
     error,
@@ -1412,6 +1440,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     role,
     pairs,
     supervisedPairSummaries,
+    supervisedWorkspaces,
     pair,
     currentPair: pair,
     profiles: visibleProfiles,

@@ -72,6 +72,15 @@ export type SupervisedPairSummary = {
   lastWeeklyMeeting: Meeting | null;
   publishedResourceCount: number;
 };
+export type SupervisedWorkspace = {
+  pair: Pair;
+  week_start: string;
+  targets: Target[];
+  entries: DailyEntry[];
+  meetings: Meeting[];
+  resources: Resource[];
+  storageUsageBytes: number;
+};
 export type Target = {
   id: string;
   pair_id: string;

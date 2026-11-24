@@ -16,6 +16,8 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    // Keep browser suites from exhausting smaller development/build runners.
+    maxWorkers: 2,
     setupFiles: ["./tests/setup.ts"],
     clearMocks: true,
   },

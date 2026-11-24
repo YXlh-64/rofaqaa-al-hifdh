@@ -28,6 +28,7 @@ import {
 import { SURAHS } from "../lib/surahs";
 import type { Resource as ResourceRecord, ResourceInput } from "../lib/types";
 import "./extras.css";
+import "./SupervisorResources.css";
 
 const maxFileBytes = 5 * 1024 * 1024;
 const pairQuotaBytes = 50 * 1024 * 1024;
@@ -259,7 +260,10 @@ function ResourceForm({
   );
 }
 
-export default function Resources() {
+export default function Resources({
+  supervisorView = false,
+  onBack,
+}: { supervisorView?: boolean; onBack?: () => void } = {}) {
   const {
     profile,
     pair: currentPair,
@@ -338,16 +342,29 @@ export default function Resources() {
       <div className="page-heading">
         <div>
           <p className="eyebrow">زادٌ على الطريق</p>
-          <h1>الموارد</h1>
+          <h1>
+            {supervisorView && supervisor
+              ? `موارد ${currentPair.name}`
+              : "الموارد"}
+          </h1>
           <p className="page-intro">
-            مواد يختارها المشرف لتعينكما على الحفظ والفهم والمراجعة.
+            {supervisorView && supervisor
+              ? "روابط وملفات خاصة بهذه الرفقة، تُشاركها مع الرفيقين."
+              : "مواد يختارها المشرف لتعينكما على الحفظ والفهم والمراجعة."}
           </p>
         </div>
         {supervisor && (
-          <Button disabled={readOnly} onClick={() => setEditing("new")}>
-            <Plus size={18} />
-            مشاركة مورد
-          </Button>
+          <div className="resource-team-actions">
+            {supervisorView && onBack && (
+              <Button variant="ghost" onClick={onBack}>
+                كل موارد الرفقاء
+              </Button>
+            )}
+            <Button disabled={readOnly} onClick={() => setEditing("new")}>
+              <Plus size={18} />
+              مشاركة مورد
+            </Button>
+          </div>
         )}
       </div>
       {readOnly && (

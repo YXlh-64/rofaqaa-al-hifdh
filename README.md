@@ -41,7 +41,7 @@ For a separate, empty development/test Supabase project only, install `supabase/
 
 - Arabic sign-in, supervisor onboarding, recovery and invitation acceptance.
 - Supervisor-owned pairs, two separately bound invitation links, rotation/revocation and archiving.
-- Supervisor **مساحتي** shows all assigned group spaces, with separate member/activity summaries and direct access to each workspace.
+- Supervisor **مساحاتي** shows all assigned teams and opens a read-only review of each team's plans and progress. Resources and meetings are organized by team; internal check-ins and supervisor follow-ups appear separately.
 - Received invitations in profile settings, with verified-email acceptance and status history. Existing projects need the [profile invitations migration](docs/profile-invitations.md).
 - Sunday-Saturday weeks in Africa/Algiers; individual targets and proposed/confirmed shared targets.
 - Independent daily Hifdh and revision plans, explicit rest/draft choices, separate partial/completed actuals, corrections and plan-versus-actual review.
