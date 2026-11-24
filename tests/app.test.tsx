@@ -92,17 +92,37 @@ function snapshot(): Snapshot {
     screen.getByTestId("app-state").textContent || "{}",
   ) as Snapshot;
 }
+function FixtureControls() {
+  const { demo, startDemo, setDemoRole } = useApp();
+  return (
+    <div aria-label="Test fixture controls">
+      {!demo && <button onClick={() => startDemo()}>Load test fixture</button>}
+      {demo && (
+        <>
+          <button onClick={() => setDemoRole("partner")}>
+            Test role: مريم
+          </button>
+          <button onClick={() => setDemoRole("supervisor")}>
+            Test role: مشرف
+          </button>
+          <button onClick={() => setDemoRole("admin")}>Test role: مسؤول</button>
+        </>
+      )}
+    </div>
+  );
+}
 function renderApp() {
   return render(
     <AppProvider>
       <App />
       <StateProbe />
+      <FixtureControls />
     </AppProvider>,
   );
 }
 async function enterDemo(user: ReturnType<typeof userEvent.setup>) {
   await user.click(
-    await screen.findByRole("button", { name: "استكشاف النسخة التجريبية" }),
+    await screen.findByRole("button", { name: "Load test fixture" }),
   );
   await screen.findByRole("heading", { name: /معًا، نُثبّت/ });
 }
@@ -110,8 +130,7 @@ async function changeRole(
   user: ReturnType<typeof userEvent.setup>,
   name: string,
 ) {
-  await user.click(screen.getByRole("button", { name: "الإعدادات" }));
-  await user.click(screen.getByRole("button", { name }));
+  await user.click(screen.getByRole("button", { name: `Test role: ${name}` }));
 }
 function meetingCard(name: string) {
   const card = screen.getByRole("heading", { name }).closest("article");
@@ -165,8 +184,8 @@ beforeEach(() => {
   window.history.replaceState(null, "", "/");
 });
 
-describe("Arabic demo workspace journeys", () => {
-  it("starts with no private workspace and restores the explicit local demo on reload", async () => {
+describe("Arabic workspace journeys with isolated test fixtures", () => {
+  it("starts without exposing private workspaces or a public demo entry", async () => {
     const user = userEvent.setup();
     const app = renderApp();
     expect(
@@ -174,6 +193,9 @@ describe("Arabic demo workspace journeys", () => {
     ).toBeVisible();
     expect(
       screen.queryByRole("link", { name: "خطة الأسبوع" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "استكشاف النسخة التجريبية" }),
     ).not.toBeInTheDocument();
     await enterDemo(user);
     expect(snapshot().demo).toBe(true);
@@ -194,6 +216,44 @@ describe("Arabic demo workspace journeys", () => {
     expect(supabase.from).not.toHaveBeenCalled();
     expect(supabase.rpc).not.toHaveBeenCalled();
     expect(supabase.storage.from).not.toHaveBeenCalled();
+  });
+
+  it("opens editable profile settings from the top profile link using the keyboard", async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await enterDemo(user);
+    const profileLink = screen.getByRole("link", {
+      name: "فتح إعدادات الملف الشخصي",
+    });
+    expect(profileLink).toHaveAttribute("href", "#settings");
+    profileLink.focus();
+    await user.keyboard("{Enter}");
+    expect(
+      await screen.findByRole("heading", { name: "الإعدادات" }),
+    ).toBeVisible();
+    const name = screen.getByRole("textbox", { name: "الاسم الكامل" });
+    await user.clear(name);
+    await user.type(name, "آية بن علي خوجة الجديدة");
+    await user.click(screen.getByRole("button", { name: "حفظ البيانات" }));
+    await waitFor(() =>
+      expect(snapshot().profile?.display_name).toBe("آية بن علي خوجة الجديدة"),
+    );
+    expect(screen.queryByText("استكشف الأدوار")).not.toBeInTheDocument();
+  });
+
+  it("keeps real privacy guidance and removes the local demo section", async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await enterDemo(user);
+    await user.click(
+      screen.getByRole("button", { name: "الخصوصية وحفظ البيانات" }),
+    );
+    const privacy = within(
+      screen.getByRole("dialog", { name: "الخصوصية وحفظ البيانات" }),
+    );
+    expect(privacy.queryByText("النسخة التجريبية")).not.toBeInTheDocument();
+    expect(privacy.getByText("الملفات والحذف")).toBeVisible();
+    expect(privacy.getByText(/النسخ التي نُزّلت سابقًا/)).toBeVisible();
   });
 
   it("keeps meeting outcomes separate from both members’ progress and restricts editing by meeting type", async () => {

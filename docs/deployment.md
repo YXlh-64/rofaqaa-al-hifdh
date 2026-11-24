@@ -52,7 +52,7 @@ Run `npm ci` and `npm run build:deploy` before publishing changes. Once deployed
 
 1. Open the production root and favicon; verify Arabic RTL desktop/mobile rendering and that reloads on `#plan` and `#meetings` work.
 2. Inspect response headers for CSP, `Referrer-Policy: no-referrer`, frame protections and `X-Content-Type-Options: nosniff`. Confirm Supabase network calls are allowed by CSP.
-3. Explore the local demo, then sign out and test a controlled supervisor account. Confirm signup email, email ownership and password recovery return to the production root.
+3. Test a controlled supervisor account. Confirm signup email, email ownership and password recovery return to the production root. The public application no longer includes demo access or test-role controls.
 4. Create a synthetic pair, accept both email-bound invitations, save both activities, hold a meeting separately, publish a small private file and test its authorized download. Attempt access from an unrelated account and a disabled open session.
 5. Record the deployment URL/commit and outcomes. Applying the migration or receiving a successful frontend build alone does not verify hosted Auth/Storage behavior. See [the acceptance checklist](acceptance.md) and [operations](operations.md) for remaining restoration and privacy decisions.
 

@@ -1,19 +1,10 @@
 import { useEffect, useState } from "react";
-import {
-  FlaskConical,
-  Globe2,
-  LockKeyhole,
-  RotateCcw,
-  ShieldCheck,
-  UserRound,
-} from "lucide-react";
+import { LockKeyhole } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import {
   Badge,
-  Button,
   Field,
   FormError,
-  Modal,
   SaveButton,
   SectionTitle,
   useSubmit,
@@ -22,10 +13,8 @@ import { initials } from "../components/presentation";
 import "./extras.css";
 
 export default function SettingsPage() {
-  const { profile, demo, role, updateProfile, setDemoRole, resetDemo } =
-    useApp();
+  const { profile, role, updateProfile } = useApp();
   const [name, setName] = useState(profile?.display_name ?? "");
-  const [resetting, setResetting] = useState(false);
   const [saved, setSaved] = useState(false);
   const { busy, error, submit } = useSubmit();
   useEffect(() => {
@@ -33,12 +22,6 @@ export default function SettingsPage() {
     setSaved(false);
   }, [profile?.id]);
   if (!profile) return null;
-  const roles = [
-    { id: "member", title: "آية", icon: UserRound },
-    { id: "partner", title: "مريم", icon: UserRound },
-    { id: "supervisor", title: "مشرف", icon: Globe2 },
-    { id: "admin", title: "مسؤول", icon: ShieldCheck },
-  ] as const;
   return (
     <div className="settings-page">
       <div className="page-heading">
@@ -147,90 +130,7 @@ export default function SettingsPage() {
             </p>
           </section>
         </div>
-        {demo && (
-          <section className="panel demo-settings">
-            <SectionTitle
-              title="استكشف الأدوار"
-              subtitle="يغيّر هذا العرض هوية التجربة المحلية فقط."
-              action={<FlaskConical size={20} className="gold" />}
-            />
-            <div className="role-switcher">
-              {roles.map(({ id, title, icon: Icon }) => (
-                <Button
-                  key={id}
-                  variant={
-                    (role === "member"
-                      ? profile.display_name.includes("مريم")
-                        ? "partner"
-                        : "member"
-                      : role) === id
-                      ? "primary"
-                      : "secondary"
-                  }
-                  aria-pressed={
-                    (role === "member"
-                      ? profile.display_name.includes("مريم")
-                        ? "partner"
-                        : "member"
-                      : role) === id
-                  }
-                  onClick={() => {
-                    setDemoRole(id);
-                    setSaved(false);
-                  }}
-                >
-                  <Icon size={17} />
-                  {title}
-                </Button>
-              ))}
-            </div>
-            <p className="aux-hint" style={{ marginTop: "1rem" }}>
-              دور المشرف يتيح إدارة الدعوات والموارد واللقاء الأسبوعي. دور
-              المسؤول يتيح إدارة الحسابات دون الاطلاع على المحتوى الخاص.
-            </p>
-            <hr />
-            <div className="settings-reset">
-              <div>
-                <strong>بداية جديدة للتجربة</strong>
-                <p className="aux-hint">
-                  أعد بيانات آية ومريم إلى حالتها الأصلية، مع مسح تعديلاتك
-                  والملفات المحلية.
-                </p>
-              </div>
-              <Button variant="secondary" onClick={() => setResetting(true)}>
-                <RotateCcw size={16} />
-                إعادة تهيئة التجربة
-              </Button>
-            </div>
-          </section>
-        )}
       </div>
-      {resetting && (
-        <Modal
-          title="إعادة تهيئة النسخة التجريبية"
-          onClose={() => setResetting(false)}
-        >
-          <p>
-            ستُمسح تعديلات هذه التجربة والملفات المحفوظة على هذا الجهاز، ثم تعود
-            بيانات آية ومريم الأصلية.
-          </p>
-          <div className="aux-form-footer">
-            <Button variant="secondary" onClick={() => setResetting(false)}>
-              إلغاء
-            </Button>
-            <Button
-              variant="danger"
-              onClick={() => {
-                resetDemo();
-                setResetting(false);
-                setSaved(false);
-              }}
-            >
-              إعادة التهيئة
-            </Button>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 }

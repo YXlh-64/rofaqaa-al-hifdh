@@ -373,22 +373,29 @@ export default function App() {
               })}
             </span>
             <span className="topbar-divider" />
-            <span
-              className="avatar avatar-gold"
-              aria-label={profile.display_name}
+            <a
+              href="#settings"
+              className="avatar avatar-gold profile-shortcut"
+              aria-label="فتح إعدادات الملف الشخصي"
+              title={`إعدادات ${profile.display_name}`}
+              aria-current={actualPage === "settings" ? "page" : undefined}
+              onClick={(event) => {
+                if (
+                  event.button !== 0 ||
+                  event.ctrlKey ||
+                  event.metaKey ||
+                  event.shiftKey ||
+                  event.altKey
+                )
+                  return;
+                event.preventDefault();
+                navigate("settings");
+              }}
             >
               {initials(profile.display_name)}
-            </span>
+            </a>
           </div>
         </header>
-        {demo && (
-          <div className="demo-strip">
-            <span>نسخة تجريبية · بيانات محفوظة على هذا الجهاز فقط</span>
-            <button onClick={() => navigate("settings")}>
-              تبديل الدور التجريبي
-            </button>
-          </div>
-        )}
         <main id="main-content" tabIndex={-1} className="content">
           {error && (
             <div className="stack" style={{ marginBottom: "1rem" }}>
@@ -474,22 +481,12 @@ export default function App() {
       {privacy && (
         <Modal title="الخصوصية وحفظ البيانات" onClose={() => setPrivacy(false)}>
           <div className="settings-list">
-            <p>
-              هذه نسخة مخصّصة لتجربة خاصة للبالغين (١٨ سنة فأكثر). لا تُجمع بيانات
-              تحليلية ولا توجد ملفات شخصية عامة.
-            </p>
+            <p>لا تُجمع بيانات تحليلية ولا توجد ملفات شخصية عامة.</p>
             <div>
               <strong>من يرى بياناتك؟</strong>
               <p>
                 أنت، ورفيقك، والمشرف المكلّف فقط. إدارة الحسابات لا تمنح حق قراءة
                 الخطط أو الملاحظات الخاصة.
-              </p>
-            </div>
-            <div>
-              <strong>النسخة التجريبية</strong>
-              <p>
-                بياناتها محلية على جهازك. تُمسح من الإعدادات بإعادة تهيئة
-                التجربة. الملفات التجريبية تبقى داخل هذا الجهاز.
               </p>
             </div>
             <div>

@@ -14,7 +14,6 @@ export default function Auth() {
   const {
     login,
     signup,
-    startDemo,
     resetPassword,
     updatePassword,
     error: accountError,
@@ -197,15 +196,6 @@ export default function Auth() {
                   </button>
                 </div>
               )}
-              {mode === "signup" && (
-                <label className="consent">
-                  <input type="checkbox" required />
-                  <span>
-                    أؤكد أن عمري ١٨ سنة أو أكثر، وأوافق على استخدام بياناتي
-                    لمتابعة الحفظ ضمن تجربة خاصة.
-                  </span>
-                </label>
-              )}
               <FormError error={error || accountError} />
               <Button type="submit" disabled={busy}>
                 {busy
@@ -242,20 +232,6 @@ export default function Auth() {
               </button>
             )}
           </div>
-          <div className="auth-divider">تعرّف على المساحة أولًا</div>
-          <Button
-            variant="secondary"
-            className="demo-button"
-            onClick={() => startDemo()}
-          >
-            <Sprout size={18} />
-            استكشاف النسخة التجريبية
-          </Button>
-          <p className="auth-footnote">
-            بيانات تجريبية لآية ورفيقتها مريم، تُحفظ على هذا الجهاز فقط.
-            <br />
-            الأعضاء ينضمون عبر دعوة من المشرف.
-          </p>
         </div>
       </main>
     </div>

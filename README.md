@@ -12,7 +12,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open the printed local URL. Choose **استكشاف النسخة التجريبية** to explore Aya Benali Khodja and fictional Maryam's workspace without creating accounts. The banner distinguishes browser-local demo records from Supabase records. Settings switches test roles. Do not put real study records in demo mode.
+Open the printed local URL and sign in with a real account. Public demo entry and role switching have been removed. Synthetic Aya/Maryam fixtures remain available only to automated tests; development and production builds ignore old demo-session markers.
 
 ```bash
 npm test
@@ -47,7 +47,7 @@ For a separate, empty development/test Supabase project only, install `supabase/
 - Private file/link resources, supervisor metadata edits/withdrawal, file/pair quota checks and authenticated downloads.
 - Independent account administration, disable confirmation, audit trail and final-admin protection.
 
-The SQL enforces access on every read/write, including already-issued sessions. Browser role visibility is only a convenience. The demo is an interaction fixture, not evidence of server authorization.
+The SQL enforces access on every read/write, including already-issued sessions. Browser role visibility is only a convenience. Automated test fixtures are isolated from real accounts and do not prove live server authorization.
 
 ## Readiness
 

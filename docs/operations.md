@@ -4,7 +4,7 @@ Reviewed against official provider documentation on 2026-11-22. Aya has now auth
 
 ## Configuration and environments
 
-Use `.env.local` for the supplied project URL and publishable key; `.env.example` contains the exact public values. Never expose a service-role key, database password or SMTP password through Vite. The demo has a separate browser-local store; logging out of demo must not copy records into live accounts. Use a different Supabase project for destructive integration tests; preserve production project IDs and never reset a populated database to apply an update.
+Use `.env.local` for the supplied project URL and publishable key; `.env.example` contains the exact public values. Never expose a service-role key, database password or SMTP password through Vite. Synthetic fixtures are enabled only in automated test mode; development/production ignore old demo-session markers without erasing stored local data. No fixture records are copied into live accounts. Use a different Supabase project for destructive integration tests; preserve production project IDs and never reset a populated database to apply an update.
 
 When using a different Supabase project for a hosted test build, update the exact `connect-src` origins in `public/_headers` to match its URL before building. The supplied CSP targets Aya's supplied project. Cloudflare Pages applies `_headers` to the published static assets; Vite's development server does not interpret it.
 

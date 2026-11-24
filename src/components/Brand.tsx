@@ -1,5 +1,3 @@
-import { BookOpen } from "lucide-react";
-
 export function Rosette({ className = "" }: { className?: string }) {
   return (
     <svg
@@ -29,10 +27,14 @@ export function Rosette({ className = "" }: { className?: string }) {
 export default function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <div className={`brand ${compact ? "brand-compact" : ""}`}>
-      <span className="brand-mark">
-        <BookOpen size={29} strokeWidth={1.3} />
-        <span />
-      </span>
+      <img
+        className="brand-mark"
+        src={`${import.meta.env.BASE_URL}favicon.svg`}
+        width="45"
+        height="45"
+        alt=""
+        aria-hidden="true"
+      />
       <div>
         <span className="brand-title">رفقاء الحفظ</span>
         {!compact && (

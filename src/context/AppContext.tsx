@@ -205,7 +205,8 @@ async function read<T>(table: string, columns = "*"): Promise<T[]> {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const initialDemo = !!sessionStorage.getItem(DEMO_SESSION);
+  const initialDemo =
+    import.meta.env.MODE === "test" && !!sessionStorage.getItem(DEMO_SESSION);
   const [demo, setDemo] = useState(initialDemo);
   const [demoRole, updateDemoRole] = useState<DemoRole>(
     (sessionStorage.getItem(DEMO_SESSION) as DemoRole) || "member",
@@ -445,6 +446,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const startDemo = (nextRole: DemoRole = "member") => {
+    if (import.meta.env.MODE !== "test") return;
     ++sessionRef.current;
     sessionStorage.setItem(DEMO_SESSION, nextRole);
     updateDemoRole(nextRole);
@@ -456,7 +458,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setWeek(weekStart());
   };
   const switchDemoRole = (nextRole: DemoRole) => {
-    if (!demo) return;
+    if (import.meta.env.MODE !== "test" || !demo) return;
     sessionStorage.setItem(DEMO_SESSION, nextRole);
     updateDemoRole(nextRole);
     setPairId("");
@@ -464,7 +466,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setMessage("");
   };
   const resetDemo = () => {
-    if (!demo) return;
+    if (import.meta.env.MODE !== "test" || !demo) return;
     const initial = makeDemo();
     localStorage.setItem(DEMO_KEY, JSON.stringify(initial));
     setState(initial);
