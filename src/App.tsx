@@ -129,7 +129,6 @@ export default function App() {
   const [page, setPage] = useState(readPage);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [help, setHelp] = useState(false);
-  const [privacy, setPrivacy] = useState(false);
   const token = location.hash.startsWith("#invite=")
     ? location.hash.slice(8)
     : sessionStorage.getItem("rofaqa-invite");
@@ -491,9 +490,6 @@ export default function App() {
             <span>
               رفقاء الحفظ <span className="gold">✦</span> معًا على طريق القرآن
             </span>
-            <button onClick={() => setPrivacy(true)}>
-              الخصوصية وحفظ البيانات
-            </button>
           </footer>
         </main>
       </div>
@@ -538,33 +534,6 @@ export default function App() {
               <p>يشارك المشرف روابط وملفات خاصة برفقتكما، لا تظهر لغيركما.</p>
             </div>
             <Badge tone="gold">الأسبوع يبدأ الأحد · بتوقيت الجزائر</Badge>
-          </div>
-        </Modal>
-      )}
-      {privacy && (
-        <Modal title="الخصوصية وحفظ البيانات" onClose={() => setPrivacy(false)}>
-          <div className="settings-list">
-            <p>لا تُجمع بيانات تحليلية ولا توجد ملفات شخصية عامة.</p>
-            <div>
-              <strong>من يرى بياناتك؟</strong>
-              <p>
-                أنت، ورفيقك، والمشرف المكلّف فقط. إدارة الحسابات لا تمنح حق قراءة
-                الخطط أو الملاحظات الخاصة.
-              </p>
-            </div>
-            <div>
-              <strong>الملفات والحذف</strong>
-              <p>
-                الملفات في الحساب الفعلي خاصة. لسحب مورد أو طلب تصدير بياناتك أو
-                حذف حسابك، تواصل مع مشرف التجربة عبر وسيلة التواصل المعتادة.
-                يلزم اعتماد مدة الاحتفاظ وإجراء الحذف قبل استقبال مستخدمين
-                حقيقيين.
-              </p>
-            </div>
-            <p className="field-hint">
-              لا تُشارك روابط الدعوات أو التنزيل مع الآخرين. النسخ التي نُزّلت
-              سابقًا لا يمكن سحبها عن بُعد.
-            </p>
           </div>
         </Modal>
       )}

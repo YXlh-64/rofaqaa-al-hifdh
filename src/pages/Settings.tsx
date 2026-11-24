@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { LockKeyhole } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import {
   Badge,
@@ -102,7 +101,7 @@ export default function SettingsPage() {
             <div className="settings-list">
               <div>
                 <strong>اللغة</strong>
-                <p>العربية · من اليمين إلى اليسار</p>
+                <p>العربية</p>
               </div>
               <div>
                 <strong>الأسبوع والتوقيت</strong>
@@ -118,17 +117,6 @@ export default function SettingsPage() {
                 </p>
               </div>
             </div>
-          </section>
-          <section className="panel">
-            <SectionTitle
-              title="بياناتك ملك لك"
-              action={<LockKeyhole size={19} className="gold" />}
-            />
-            <p className="aux-hint">
-              لطلب تصدير بياناتك أو حذفها، تواصل مع مشرف التجربة عبر وسيلة
-              التواصل المعتادة. تُحدَّد إجراءات الحذف والاحتفاظ قبل استقبال
-              مستخدمين حقيقيين.
-            </p>
           </section>
         </div>
         <ProfileInvitations />

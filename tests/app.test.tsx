@@ -376,6 +376,14 @@ describe("Arabic workspace journeys with isolated test fixtures", () => {
     expect(
       await screen.findByRole("heading", { name: "الإعدادات" }),
     ).toBeVisible();
+    expect(screen.getByText("العربية", { exact: true })).toBeVisible();
+    expect(screen.queryByText(/من اليمين إلى اليسار/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "بياناتك ملك لك" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "الخصوصية وحفظ البيانات" }),
+    ).not.toBeInTheDocument();
     const name = screen.getByRole("textbox", { name: "الاسم الكامل" });
     await user.clear(name);
     await user.type(name, "آية بن علي خوجة الجديدة");
@@ -384,21 +392,6 @@ describe("Arabic workspace journeys with isolated test fixtures", () => {
       expect(snapshot().profile?.display_name).toBe("آية بن علي خوجة الجديدة"),
     );
     expect(screen.queryByText("استكشف الأدوار")).not.toBeInTheDocument();
-  });
-
-  it("keeps real privacy guidance and removes the local demo section", async () => {
-    const user = userEvent.setup();
-    renderApp();
-    await enterDemo(user);
-    await user.click(
-      screen.getByRole("button", { name: "الخصوصية وحفظ البيانات" }),
-    );
-    const privacy = within(
-      screen.getByRole("dialog", { name: "الخصوصية وحفظ البيانات" }),
-    );
-    expect(privacy.queryByText("النسخة التجريبية")).not.toBeInTheDocument();
-    expect(privacy.getByText("الملفات والحذف")).toBeVisible();
-    expect(privacy.getByText(/النسخ التي نُزّلت سابقًا/)).toBeVisible();
   });
 
   it("keeps meeting outcomes separate from both members’ progress and restricts editing by meeting type", async () => {
