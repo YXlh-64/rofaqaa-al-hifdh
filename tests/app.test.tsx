@@ -394,6 +394,65 @@ describe("Arabic workspace journeys with isolated test fixtures", () => {
     expect(screen.queryByText("استكشف الأدوار")).not.toBeInTheDocument();
   });
 
+  it("signs out from the mobile drawer and profile settings without leaving private data or a locked page", async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await enterDemo(user);
+    await user.click(screen.getByRole("link", { name: "سجلّ الإنجاز" }));
+    await user.click(screen.getByRole("button", { name: "فتح قائمة التنقل" }));
+    const drawer = within(
+      screen.getByRole("dialog", { name: "التنقل الرئيسي" }),
+    );
+    const drawerLogout = drawer.getByRole("button", { name: "تسجيل الخروج" });
+    expect(drawerLogout).toHaveTextContent("تسجيل الخروج");
+    expect(document.body.style.overflow).toBe("hidden");
+    await user.click(drawerLogout);
+
+    expect(
+      await screen.findByRole("button", { name: "تسجيل الدخول" }),
+    ).toBeVisible();
+    expect(snapshot()).toMatchObject({
+      profile: null,
+      demo: false,
+      pair: null,
+      pairs: [],
+      entries: [],
+      targets: [],
+      meetings: [],
+      resources: [],
+    });
+    expect(
+      screen.queryByRole("link", { name: "خطة الأسبوع" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("dialog", { name: "التنقل الرئيسي" }),
+    ).not.toBeInTheDocument();
+    expect(location.hash).toBe("#dashboard");
+    await waitFor(() => expect(document.body.style.overflow).toBe(""));
+
+    await enterDemo(user);
+    expect(
+      screen.getByRole("button", { name: "فتح قائمة التنقل" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    await user.click(
+      screen.getByRole("link", { name: "فتح إعدادات الملف الشخصي" }),
+    );
+    expect(
+      await screen.findByRole("heading", { name: "الإعدادات" }),
+    ).toBeVisible();
+    const profileLogout = within(screen.getByRole("main")).getByRole("button", {
+      name: "تسجيل الخروج",
+    });
+    expect(profileLogout).toHaveTextContent("تسجيل الخروج");
+    await user.click(profileLogout);
+    expect(
+      await screen.findByRole("button", { name: "تسجيل الدخول" }),
+    ).toBeVisible();
+    expect(snapshot().profile).toBeNull();
+    expect(snapshot().pairs).toEqual([]);
+    expect(document.body.style.overflow).toBe("");
+  });
+
   it("keeps meeting outcomes separate from both members’ progress and restricts editing by meeting type", async () => {
     const user = userEvent.setup();
     renderApp();

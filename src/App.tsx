@@ -187,6 +187,12 @@ export default function App() {
     setPairId(id);
     navigate(`workspace=${encodeURIComponent(id)}`);
   };
+  const handleLogout = () => {
+    setMobileOpen(false);
+    setHelp(false);
+    navigate("dashboard");
+    void logout();
+  };
   if (loading)
     return (
       <div className="loading-page" role="status" aria-label="جارٍ تحميل مساحتك">
@@ -210,7 +216,7 @@ export default function App() {
           <EmptyState
             title="الحساب موقوف مؤقتًا"
             description="تواصل مع مسؤول النظام لإعادة تفعيل حسابك."
-            action={<Button onClick={() => logout()}>تسجيل الخروج</Button>}
+            action={<Button onClick={handleLogout}>تسجيل الخروج</Button>}
           />
         </div>
       </div>
@@ -336,6 +342,10 @@ export default function App() {
             <CircleHelp size={18} strokeWidth={1.5} />
             دليل المساحة
           </button>
+          <button className="nav-item" onClick={handleLogout}>
+            <LogOut size={18} strokeWidth={1.5} />
+            تسجيل الخروج
+          </button>
           <div className="profile-mini">
             <span className="avatar">{initials(profile.display_name)}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -348,14 +358,6 @@ export default function App() {
                     : "مسؤول النظام"}
               </small>
             </div>
-            <button
-              className="icon-button"
-              aria-label="تسجيل الخروج"
-              onClick={() => logout()}
-              style={{ color: "#adc2ad" }}
-            >
-              <LogOut size={17} />
-            </button>
           </div>
         </div>
       </aside>
@@ -475,7 +477,7 @@ export default function App() {
           ) : actualPage === "pairs" && profile.is_supervisor ? (
             <Pairs navigate={navigate} />
           ) : actualPage === "settings" ? (
-            <SettingsPage />
+            <SettingsPage onLogout={handleLogout} />
           ) : actualPage === "admin" && profile.is_admin ? (
             <Admin />
           ) : profile.is_supervisor ? (

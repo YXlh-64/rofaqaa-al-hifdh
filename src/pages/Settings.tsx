@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { LogOut } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import {
   Badge,
+  Button,
   Field,
   FormError,
   SaveButton,
@@ -12,7 +14,7 @@ import { initials } from "../components/presentation";
 import ProfileInvitations from "../components/ProfileInvitations";
 import "./extras.css";
 
-export default function SettingsPage() {
+export default function SettingsPage({ onLogout }: { onLogout: () => void }) {
   const { profile, role, updateProfile } = useApp();
   const [name, setName] = useState(profile?.display_name ?? "");
   const [saved, setSaved] = useState(false);
@@ -30,6 +32,10 @@ export default function SettingsPage() {
           <h1>الإعدادات</h1>
           <p>بيانات حسابك، وتفاصيل تجربتك في رفقاء الحفظ.</p>
         </div>
+        <Button type="button" variant="secondary" onClick={onLogout}>
+          <LogOut size={17} />
+          تسجيل الخروج
+        </Button>
       </div>
       <div className="settings-grid">
         <section className="panel">

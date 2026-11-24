@@ -259,4 +259,41 @@ describe("received invitations provider boundary", () => {
     expect(result.current.pair).toBeNull();
     expect(result.current.message).toBe("");
   });
+
+  it("signs out through Supabase and immediately clears the live profile and private workspace while sign-out is pending", async () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    await waitFor(() => expect(result.current.pair?.id).toBe("demo-pair"));
+    expect(result.current.demo).toBe(false);
+    expect(result.current.entries.length).toBeGreaterThan(0);
+    expect(result.current.resources.length).toBeGreaterThan(0);
+    sessionStorage.setItem("rofaqa-demo-role", "old-local-state");
+    let finishSignOut!: (value: { error: null }) => void;
+    vi.mocked(supabase.auth.signOut).mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishSignOut = resolve;
+      }),
+    );
+    let pendingSignOut!: Promise<void>;
+    await act(async () => {
+      result.current.notify("رسالة من الحساب السابق");
+      pendingSignOut = result.current.logout();
+    });
+    expect(supabase.auth.signOut).toHaveBeenCalledExactlyOnceWith();
+    expect(result.current.profile).toBeNull();
+    expect(result.current.pair).toBeNull();
+    expect(result.current.pairs).toEqual([]);
+    expect(result.current.profiles).toEqual([]);
+    expect(result.current.entries).toEqual([]);
+    expect(result.current.targets).toEqual([]);
+    expect(result.current.meetings).toEqual([]);
+    expect(result.current.resources).toEqual([]);
+    expect(result.current.supervisedPairSummaries).toEqual([]);
+    expect(result.current.message).toBe("");
+    expect(sessionStorage.getItem("rofaqa-demo-role")).toBeNull();
+    await act(async () => {
+      finishSignOut({ error: null });
+      await pendingSignOut;
+    });
+    expect(result.current.error).toBe("");
+  });
 });
